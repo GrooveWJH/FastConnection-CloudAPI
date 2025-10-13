@@ -9,13 +9,13 @@ docker run -d \
   --name fc-cloudapi \
   -p 3100:3100 \
   -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 \
-  -e MQTT_TCP_URL=your_mqtt_url \
   groovewjh/fc-cloudapi:latest
 ```
 
 ## Run with Source Code
 
 Quick start:
+
 1. clone this repo.
 2. `cp .env.example .env` (optional) to tweak MQTT settings or ports.
 3. `docker compose up -d --build`
