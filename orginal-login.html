@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>DJI遥控器登录页面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- 引入MQTT.js库 -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .button-row {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+      }
+
+      button {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      button:hover {
+        transform: translateY(-1px);
+      }
+      
+      #login-button {
+        background: #4CAF50;
+        color: white;
+      }
+      
+      #login-button:hover {
+        background: #45a049;
+      }
+      
+      #logout-button {
+        background: #f44336;
+        color: white;
+      }
+      
+      #logout-button:hover {
+        background: #da190b;
+      }
+      
+      #status-button {
+        background: #2196F3;
+        color: white;
+      }
+      
+      #status-button:hover {
+        background: #0b7dda;
+      }
+      
+      #connection-info {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        background: #f9f9f9;
+        border-radius: 6px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      #logs {
+        background: #1e1e1e;
+        color: #00ff00;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        line-height: 1.4;
+      }
+      
+      .log-item {
+        margin: 2px 0;
+        padding: 2px 0;
+      }
+      
+      .log-success {
+        color: #00ff00;
+      }
+      
+      .log-error {
+        color: #ff4444;
+      }
+      
+      .log-info {
+        color: #4CAF50;
+      }
+      
+      .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+      
+      .status-connected {
+        background: #4CAF50;
+      }
+      
+      .status-disconnected {
+        background: #f44336;
+      }
+      
+      .status-connecting {
+        background: #ff9800;
+        animation: pulse 1s infinite;
+      }
+      
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>DJI 云 API 测试</h1>
+
+      <div class="button-row">
+        <button id="login-button">登录</button>
+        <button id="logout-button">注销</button>
+        <button id="status-button">状态报告</button>
+      </div>
+      
+      <div id="connection-info"></div>
+      <div id="logs"></div>
+    </div>
+
+    <script>
+      // DJI 配置常量
+      const APP_ID = 171440;
+      const LICENSE = "krC5HsEFLzVC8xkKM38JCcSxNEQvsQ/7IoiHEJRaulGiPQildia+n/+bF+SO21pk1JTS8CfaNS+fn8qt+17i3Y7uoqtBOOsdtLUQhqPMb0DVea0dmZ7oZhdP2CuQrQSn1bobS3pQ+MW2eEOq0XCcCkpo+HxAC1r5/33yEDxc6NE=";
+      const APP_KEY = "b57ab1ee70f0a78e1797c592742e7d4";
+      
+      // MQTT 配置 - 这些值会被服务器替换
+      const MQTT_HOST = "tcp://hostnamehere:1883";
+      const MQTT_USERNAME = "userloginhere";
+      const MQTT_PASSWORD = "userpasswordhere";
+      
+      // DOM 元素
+      const logsContainer = document.getElementById("logs");
+      const connectionInfo = document.getElementById("connection-info");
+      
+      // MQTT 客户端变量
+      let mqttClient = null;
+      let isConnected = false;
+      
+      // 初始化页面
+      function initPage() {
+        updateConnectionInfo();
+        log("页面初始化完成", "info");
+        log("平台验证状态：" + (window.djiBridge ? window.djiBridge.platformIsVerified() : "djiBridge未加载"), "info");
+      }
+      
+      // 更新连接信息显示
+      function updateConnectionInfo() {
+        const statusClass = isConnected ? "status-connected" : "status-disconnected";
+        const statusText = isConnected ? "已连接" : "未连接";
+        
+        connectionInfo.innerHTML = `
+          <div style="margin-bottom: 10px;">
+            <strong>MQTT 连接配置</strong>
+            <span class="status-indicator ${statusClass}"></span>
+            <span>${statusText}</span>
+          </div>
+          <div><strong>Host:</strong> ${MQTT_HOST}</div>
+          <div><strong>Username:</strong> ${MQTT_USERNAME}</div>
+          <div><strong>Password:</strong> ${MQTT_PASSWORD}</div>
+        `;
+      }
+      
+      // 日志记录函数
+      function log(message, type = "info") {
+        const timestamp = new Date().toLocaleTimeString();
+        const logItem = document.createElement("div");
+        logItem.className = `log-item log-${type}`;
+        logItem.textContent = `[${timestamp}] ${message}`;
+        logsContainer.appendChild(logItem);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+      }
+      
+      // MQTT 连接函数
+      function connectMQTT() {
+        if (mqttClient) {
+          log("MQTT 客户端已存在，先断开", "info");
+          mqttClient.end();
+        }
+        
+        try {
+          log("正在连接 MQTT 服务器...", "info");
+          
+          // 解析MQTT URL
+          const url = MQTT_HOST.replace('tcp://', 'ws://') + (MQTT_HOST.includes(':') ? '' : ':1883');
+          
+          mqttClient = mqtt.connect(url, {
+            username: MQTT_USERNAME,
+            password: MQTT_PASSWORD,
+            clientId: 'dji_rc_' + Math.random().toString(16).substr(2, 8),
+            reconnectPeriod: 5000,
+            connectTimeout: 10000
+          });
+          
+          mqttClient.on('connect', () => {
+            isConnected = true;
+            updateConnectionInfo();
+            log("MQTT 连接成功！", "success");
+            
+            // 订阅相关主题
+            mqttClient.subscribe('dji/+/status', (err) => {
+              if (!err) {
+                log("已订阅 dji/+/status 主题", "success");
+              }
+            });
+          });
+          
+          mqttClient.on('error', (error) => {
+            isConnected = false;
+            updateConnectionInfo();
+            log("MQTT 连接错误: " + error.message, "error");
+          });
+          
+          mqttClient.on('close', () => {
+            isConnected = false;
+            updateConnectionInfo();
+            log("MQTT 连接已关闭", "info");
+          });
+          
+          mqttClient.on('message', (topic, message) => {
+            log(`收到消息 [${topic}]: ${message.toString()}`, "info");
+          });
+          
+        } catch (error) {
+          log("MQTT 连接失败: " + error.message, "error");
+        }
+      }
+      
+      // 断开MQTT连接
+      function disconnectMQTT() {
+        if (mqttClient) {
+          mqttClient.end();
+          mqttClient = null;
+          isConnected = false;
+          updateConnectionInfo();
+          log("MQTT 连接已断开", "info");
+        }
+      }
+      
+      // DJI Bridge 回调函数
+      function reg_callback() {
+        log("DJI Bridge 回调触发 🎉 参数：" + Array.from(arguments).join(', '), "success");
+      }
+      
+      // 事件监听器
+      document.getElementById("login-button").addEventListener("click", function () {
+        log("=== 开始登录流程 ===", "info");
+        
+        // 首先连接MQTT
+        connectMQTT();
+        
+        // DJI Bridge 验证
+        if (window.djiBridge) {
+          try {
+            log("开始验证平台许可证...", "info");
+            const token = window.djiBridge.platformVerifyLicense(APP_ID, APP_KEY, LICENSE);
+            log("平台验证状态：" + window.djiBridge.platformIsVerified(), "info");
+
+            const register_params = JSON.stringify({
+              host: MQTT_HOST,
+              connectCallback: "reg_callback",
+              username: MQTT_USERNAME,
+              password: MQTT_PASSWORD,
+            });
+            
+            log("加载 thing 组件：" + window.djiBridge.platformLoadComponent("thing", register_params), "info");
+            log("当前状态：" + window.djiBridge.thingGetConnectState(), "info");
+            log("开始连接 thing：" + window.djiBridge.thingConnect(MQTT_USERNAME, MQTT_PASSWORD, "reg_callback"), "info");
+            log("Thing 连接状态：" + window.djiBridge.thingGetConnectState(), "info");
+            
+          } catch (error) {
+            log("DJI Bridge 操作错误: " + error.message, "error");
+          }
+        } else {
+          log("djiBridge 对象未找到，可能不在 DJI 遥控器环境中", "error");
+        }
+      });
+
+      document.getElementById("logout-button").addEventListener("click", function () {
+        log("=== 开始注销流程 ===", "info");
+        
+        // 断开MQTT
+        disconnectMQTT();
+        
+        // DJI Bridge 注销
+        if (window.djiBridge) {
+          try {
+            log("卸载组件：" + window.djiBridge.platformUnloadComponent("thing"), "info");
+          } catch (error) {
+            log("DJI Bridge 注销错误: " + error.message, "error");
+          }
+        }
+      });
+
+      document.getElementById("status-button").addEventListener("click", function () {
+        log("=== 状态报告 ===", "info");
+        log("MQTT 连接状态：" + (isConnected ? "已连接" : "未连接"), "info");
+        
+        if (window.djiBridge) {
+          try {
+            log("组件加载状态：" + window.djiBridge.platformIsComponentLoaded("thing"), "info");
+            log("Thing 状态：" + window.djiBridge.thingGetConnectState(), "info");
+            log("平台验证状态：" + window.djiBridge.platformIsVerified(), "info");
+          } catch (error) {
+            log("DJI Bridge 状态查询错误: " + error.message, "error");
+          }
+        } else {
+          log("djiBridge 对象未找到", "error");
+        }
+      });
+      
+      // 页面加载完成后初始化
+      window.addEventListener('load', initPage);
+      
+      // 定义全局回调函数
+      window.reg_callback = reg_callback;
+      
+    </script>
+  </body>
+</html>

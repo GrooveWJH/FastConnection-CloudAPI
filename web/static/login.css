@@ -1,0 +1,273 @@
+:root {
+  --bg: #f0f2f5;
+  --panel-bg: #ffffff;
+  --panel-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --info: #0ea5e9;
+  --info-strong: #0284c7;
+  --warning: #f59e0b;
+  --warning-strong: #d97706;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --radius: 12px;
+  --space: 1.8vmin;
+  --font-small: 1.4vmin;
+  --font-base: 1.7vmin;
+  --font-large: 2.2vmin;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: 'Inter', 'Segoe UI', 'PingFang SC', sans-serif;
+  color: var(--text-primary);
+}
+
+ .page-wrapper {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: calc(var(--space) * 0.6);
+  height: 100vh;
+  width: 100vw;
+  padding: calc(var(--space) * 0.7) calc(var(--space) * 1.1);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.panel-controls {
+  flex: 0 1 60%;
+  min-width: 280px;
+  max-width: 60%;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 0.6);
+}
+
+.panel-logs {
+  flex: 0 1 40%;
+  min-width: 220px;
+  max-width: 40%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  padding: calc(var(--space) * 1.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel h1 {
+  margin: 0 0 calc(var(--space) * 0.8);
+  font-size: 3vmin;
+  font-weight: 700;
+}
+
+.panel-logs h2 {
+  margin: 0 0 calc(var(--space) * 0.6);
+  font-size: var(--font-large);
+  font-weight: 600;
+}
+
+.endpoint-settings,
+.auth-settings {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: calc(var(--radius) - 4px);
+  padding: calc(var(--space) * 0.9);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.12), rgba(226, 232, 240, 0.05));
+  margin-bottom: calc(var(--space) * 0.9);
+}
+
+.endpoint-settings h2,
+.auth-settings h2 {
+  margin: 0 0 calc(var(--space) * 0.5);
+  font-size: var(--font-large);
+}
+
+.endpoint-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 0.3);
+  font-size: var(--font-small);
+  color: var(--text-secondary);
+}
+
+.endpoint-settings input {
+  padding: calc(var(--space) * 0.45) calc(var(--space) * 0.6);
+  border-radius: calc(var(--radius) - 6px);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  font-size: var(--font-base);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.endpoint-settings input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.endpoint-note {
+  margin: calc(var(--space) * 0.35) 0 0;
+  font-size: clamp(11px, 1.1vmin, 13px);
+  color: var(--text-muted);
+}
+
+.auth-modes {
+  display: flex;
+  gap: calc(var(--space) * 0.5);
+  margin-bottom: calc(var(--space) * 0.6);
+  flex-wrap: wrap;
+}
+
+.auth-option {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 0.3);
+  font-size: var(--font-base);
+  color: var(--text-primary);
+}
+
+.credentials {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: calc(var(--space) * 0.6);
+}
+
+.credentials label {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 0.3);
+  font-size: var(--font-small);
+}
+
+.credentials input {
+  padding: calc(var(--space) * 0.45) calc(var(--space) * 0.6);
+  border-radius: calc(var(--radius) - 6px);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  font-size: var(--font-base);
+}
+
+.credentials label.disabled {
+  opacity: 0.5;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 0.6);
+  margin: 0;
+  padding: calc(var(--space) * 0.6);
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.08), rgba(15, 23, 42, 0.06));
+  border-radius: calc(var(--radius) - 4px);
+  flex: 1 1 auto;
+}
+
+button {
+  padding: calc(var(--space) * 1.1);
+  min-height: calc(var(--space) * 2.6);
+  border-radius: calc(var(--radius) - 4px);
+  border: none;
+  font-size: calc(var(--font-base) * 1.1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  color: white;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+}
+
+#login-button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+}
+
+#logout-button {
+  background: linear-gradient(135deg, var(--danger), var(--danger-strong));
+}
+
+#status-button {
+  background: linear-gradient(135deg, var(--info), var(--info-strong));
+}
+
+#test-button {
+  background: linear-gradient(135deg, var(--warning), var(--warning-strong));
+}
+
+#connection-info {
+  margin-top: calc(var(--space) * 0.4);
+  padding: calc(var(--space) * 0.6);
+  border-radius: calc(var(--radius) - 6px);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0));
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  font-size: var(--font-small);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  flex: 0 0 auto;
+}
+
+#logs {
+  flex: 1;
+  background: #0f172a;
+  color: #ccf7ff;
+  padding: calc(var(--space) * 0.6);
+  border-radius: calc(var(--radius) - 4px);
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: var(--font-small);
+  line-height: 1.45;
+  overflow-y: auto;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+.log-item {
+  margin: 0.2vmin 0;
+  padding: 0.3vmin 0;
+  letter-spacing: 0.01em;
+}
+
+.log-success {
+  color: #86efac;
+}
+
+.log-error {
+  color: #f87171;
+}
+
+.log-info {
+  color: #38bdf8;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 0.9vmin;
+  height: 0.9vmin;
+  border-radius: 50%;
+  margin-left: 0.6vmin;
+  margin-right: 0.6vmin;
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.status-connected {
+  background: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.4);
+}
+
+.status-disconnected {
+  background: #ef4444;
+  box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+}

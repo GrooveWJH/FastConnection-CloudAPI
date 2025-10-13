@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>DJI遥控器登录页面</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/login.css" />
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <section class="panel panel-controls">
+        <h1>DJI RC Cloud API Login</h1>
+
+        <section class="endpoint-settings">
+          <h2>MQTT 服务地址</h2>
+          <label>
+            <span>目标地址</span>
+            <input id="mqtt-host" type="text" placeholder="例如 192.168.1.10" />
+          </label>
+          <p class="endpoint-note">默认取当前页面主机，可改为 EMQX 实际可达的 IP 或域名。</p>
+        </section>
+
+      <section class="auth-settings">
+        <h2>MQTT 连接方式</h2>
+        <div class="auth-modes">
+          <label class="auth-option">
+            <input type="radio" name="auth-mode" value="anonymous" />
+            匿名连接
+          </label>
+          <label class="auth-option">
+            <input type="radio" name="auth-mode" value="credential" />
+            使用账号密码
+          </label>
+        </div>
+        <div class="credentials">
+          <label>
+            <span>用户名</span>
+            <input id="mqtt-username" type="text" autocomplete="username" />
+          </label>
+          <label>
+            <span>密码</span>
+            <input id="mqtt-password" type="password" autocomplete="current-password" />
+          </label>
+        </div>
+      </section>
+
+        <div class="button-row">
+          <button id="login-button">连接</button>
+          <button id="logout-button">断开</button>
+          <button id="status-button">状态检查</button>
+          <button id="test-button">测试 MQTT</button>
+        </div>
+        
+        <div id="connection-info"></div>
+      </section>
+
+      <section class="panel panel-logs">
+        <h2>终端日志</h2>
+        <div id="logs"></div>
+      </section>
+    </div>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="/login.js"></script>
+  </body>
+</html>

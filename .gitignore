@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Editor settings
+.idea/
+.vscode/
+
+# Environment overrides
+.env
+
+# Docker runtime data
+volumes/
+*.log
+
+# Python cache
+__pycache__/

@@ -1,0 +1,31 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: fastconnection-cloudapi
+    restart: always
+    environment:
+      MQTT_TCP_URL: ${MQTT_TCP_URL:-tcp://127.0.0.1:1883}
+      MQTT_WS_URL: ${MQTT_WS_URL:-ws://127.0.0.1:8083/mqtt}
+      MQTT_USERNAME: ${MQTT_USERNAME:-admin}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-public}
+      MQTT_WS_PORT: ${MQTT_WS_PORT:-8083}
+      MQTT_WS_PATH: ${MQTT_WS_PATH:-/mqtt}
+      WEB_BIND_HOST: ${WEB_BIND_HOST:-127.0.0.1}
+      WEB_BIND_PORT: ${WEB_BIND_PORT:-3100}
+    ports:
+      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_BIND_PORT:-3100}:${WEB_BIND_PORT:-3100}"
+      - "1883:1883"
+      - "8083:8083"
+      - "8084:8084"
+      - "8883:8883"
+      - "18083:18083"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+      - emqx_etc:/opt/emqx/etc
+
+volumes:
+  emqx_data:
+  emqx_log:
+  emqx_etc:
