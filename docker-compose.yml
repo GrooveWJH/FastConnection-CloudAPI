@@ -1,8 +1,8 @@
 services:
-  app:
+  fc-cloudapi:
     build:
       context: .
-    container_name: fastconnection-cloudapi
+    container_name: FC-CloudAPI
     restart: always
     environment:
       MQTT_TCP_URL: ${MQTT_TCP_URL:-tcp://127.0.0.1:1883}

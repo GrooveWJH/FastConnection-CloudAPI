@@ -1,63 +1,66 @@
-# Advanced Guide / 高级指南
+# Advanced Guide
 
-## Architecture Overview · 架构概览
-- **Single container**: Image builds on `emqx:5.0.20`, installs Python, and bundles `login.html`.
-- **Process supervision**: `/app/start.sh` launches the Python HTTP server (`web/entrypoint.py`) alongside EMQX, shutting down both if either exits.
-- **Networking**: Container exposes EMQX ports (1883/8083/8084/8883/18083) plus the web UI listening on `WEB_BIND_PORT`（容器与宿主机使用同一端口映射）。
-- **Persistence**: EMQX data, log, and configuration directories persist in Docker named volumes (`emqx_data`, `emqx_log`, `emqx_etc`), avoiding accidental overwrite of bundled defaults.
- - **LAN auto-detection**: `entrypoint.py` probes the container's LAN IPv4 when it starts and sets `MQTT_TCP_URL` 默认为 `tcp://<detect-ip>:1883`，浏览器端再根据该地址推导 WebSocket URL。
+## Architecture Overview
 
-## Configuration Resolution · 配置解析顺序
-1. **Runtime environment variables** passed through `docker-compose.yml`.
-2. **`.env` inside the image** (copied from the project root during build).
-3. **`.env.example` inside the image** as a fallback.
-4. **Hard-coded defaults** in `web/entrypoint.py` (`tcp://127.0.0.1:1883`, `admin/public`, etc.).
+- **Single-container deployment**: The image extends `emqx:5.0.20` and bundles the Python static server plus `login.html`.
+- **Process supervision**: `/app/start.sh` starts the Python HTTP server (`web/entrypoint.py`) and EMQX together; if either process exits, the other is stopped as well.
+- **Networking**: EMQX ports (1883/8083/8084/8883/18083) and the web UI port `WEB_BIND_PORT` are exposed one-to-one to the host.
+- **Persistence**: EMQX data, log, and config directories are mounted as named volumes (`emqx_data`, `emqx_log`, `emqx_etc`) to avoid overwriting bundled defaults.
+- **LAN discovery**: `entrypoint.py` detects the container’s IPv4 address at startup and sets `MQTT_TCP_URL` to `tcp://<detected-ip>:1883`; the front end derives the WebSocket endpoint from this value.
 
-> 推荐在项目根目录维护 `.env` 并在调整配置后执行 `docker compose up -d --build`，以确保新镜像包含最新示例或默认值。
+## Configuration Resolution Order
 
-## Environment Variables · 环境变量说明
+1. Runtime environment variables (`docker-compose.yml` or `docker run -e ...`).
+2. `/app/env/.env` baked into the image (copied from repository root).
+3. `/app/env/.env.example` packaged with the image.
+4. Hard-coded defaults in `web/entrypoint.py`.
 
-| Variable | Description | 默认值 |
-| -------- | ----------- | ------ |
-| `MQTT_TCP_URL` | Broker address used by native MQTT clients and DJI bridge. | `tcp://<detected-LAN-ip>:1883` |
-| `MQTT_WS_URL` | Explicit WebSocket endpoint exposed to the browser (usually leave blank and let UI derive). | *(empty)* |
-| `MQTT_USERNAME` | EMQX username presented to the browser client. | `admin` |
-| `MQTT_PASSWORD` | EMQX password presented to the browser client. | `public` |
-| `MQTT_WS_PORT` | Port hint for auto-deriving WebSocket URL when `MQTT_WS_URL` 留空. | `8083` |
-| `MQTT_WS_PATH` | WebSocket path segment. | `/mqtt` |
-| `WEB_BIND_HOST` | Host interface mapping the web UI (e.g. `127.0.0.1`, `0.0.0.0`, or LAN IP). | `127.0.0.1` |
-| `WEB_BIND_PORT` | Port used by both the container’s HTTP server and the host mapping. | `3100` |
+> Keep a `.env` at the project root and run `docker compose up -d --build` after edits so the rebuilt image picks up your latest defaults.
 
-> 如果宿主机同时拥有公网与内网地址，可以通过 `WEB_BIND_HOST` 指定监听接口，以控制外部访问路径。
+## Environment Variables
 
-> 浏览器端登录页可随时切换匿名/账号密码两种模式，以便在修改 EMQX 默认凭证后立即使用新账号连接。
 
-## Build & Deployment Notes · 构建与部署提示
-- 任何变更（HTML、Python、环境文件）后执行 `docker compose up -d --build`，以确保镜像重建并包含最新内容。
-- 登录页面支持在匿名与账号密码模式间切换；默认凭证由 `.env` 提供，浏览器会记住最近一次输入的地址和凭证，后续打开无需再改。
-- 在生产环境中可将 `.env` 放置在安全位置，并通过 CI/CD 注入。镜像内置的 `.env.example` 仅作为模板。
-- 若需要使用 TLS (`mqtts`/`wss`)，在 EMQX 中配置证书后，将 `MQTT_TCP_URL` 设置为 `ssl://...` 或 `mqtts://...`，并将 `MQTT_WS_PORT` 调整为 TLS WebSocket 端口（默认 8084）。
+| Variable        | Description                                                                | Default                             |
+| --------------- | -------------------------------------------------------------------------- | ----------------------------------- |
+| `MQTT_TCP_URL`  | EMQX MQTT address for the Cloud API and native clients.                    | `tcp://<auto-detected-ip>:1883`     |
+| `MQTT_WS_URL`   | Explicit WebSocket endpoint; usually leave blank and let the UI derive it. | *(empty)*                           |
+| `MQTT_USERNAME` | Username prefilled on the login page.                                      | `admin`                             |
+| `MQTT_PASSWORD` | Password prefilled on the login page.                                      | `public`                            |
+| `MQTT_WS_PORT`  | Port hint when`MQTT_WS_URL` is blank.                                      | *(empty; UI defaults to 8083/8084)* |
+| `MQTT_WS_PATH`  | WebSocket path segment.                                                    | `/mqtt`                             |
+| `WEB_BIND_HOST` | Host interface the web UI binds to.                                        | `127.0.0.1`                         |
+| `WEB_BIND_PORT` | Port used by both the container HTTP server and the host mapping.          | `3100`                              |
 
-## Data & Logs · 数据与日志
-- `docker volume inspect emqx_data`：查看数据卷细节（同理适用于 `emqx_log`、`emqx_etc`）。
-- 若需在宿主机访问配置，可通过 `docker compose run --rm app sh -c 'tar -C /opt/emqx/etc -cf - .' > emqx-etc.tar` 导出，再解压修改后绑定。
-- 要清理所有持久化内容时使用 `docker compose down --volumes`，操作前请确认不会丢失重要数据。
+> The login page supports anonymous and credential modes, storing the latest address and credentials in `localStorage`.
 
-## Verification & Troubleshooting · 验证与排错
-1. `docker compose ps` 确认容器处于 `Up` 状态。
-2. `docker compose logs app` 查看配置生成是否成功（日志应显示 HTTP server 启动且无异常）。
-3. 浏览器访问 `http://<host>:<port>`，页面顶部显示当前 MQTT 参数，并在“登录”操作后输出连接日志。
-4. 使用 MQTTX、MQTT Explorer 或 `mosquitto_pub/sub` 测试 EMQX 1883/8083/8084 端口，验证消息收发。
-5. 若浏览器无法连接，排查：
-   - `.env` 是否正确指向宿主机在相应网络下可达的 IP/域名。
-   - 防火墙、NAT 或安全组是否开放对应端口。
-   - EMQX 日志中是否有认证失败或连接拒绝记录。
+## Build & Deployment
 
-## Extending the Stack · 扩展方案
-- 通过 `docker-compose.override.yml` 增加反向代理、TLS 终端或监控等附加服务。
-- 若需要不同的登录页面版本，可在 `web/login.html` 中引入版本参数，然后重建镜像。
-- 可在 `Dockerfile` 中加入多阶段构建，先执行前端打包再复制产物。
+- After any change (front end, Python, env files) run `docker compose up -d --build` to rebuild the image.
+- Keep `.env` out of version control in production; inject it via CI/CD and treat the baked `.env.example` as a template only.
+- For TLS (`mqtts`/`wss`), configure certificates in EMQX, set `MQTT_TCP_URL` to `ssl://...` or `mqtts://...`, and point `MQTT_WS_PORT` to the TLS WebSocket port (8084 by default).
 
----
+## Data & Logs
 
-以上内容涵盖常见高级使用场景与排错流程，可根据业务需求进一步扩展。
+- Inspect volumes with `docker volume inspect emqx_data` (also works for `emqx_log` and `emqx_etc`).
+- Export EMQX config if needed:
+  ```bash
+  docker compose run --rm app sh -c 'tar -C /opt/emqx/etc -cf - .' > emqx-etc.tar
+  ```
+- To wipe persisted state, use `docker compose down --volumes` after confirming no important data is stored.
+
+## Verification & Troubleshooting
+
+1. Run `docker compose ps` to ensure the container is `Up`.
+2. Check `docker compose logs app` to verify the Python service starts and injects configuration without errors.
+3. Visit `http://<host>:<port>` and use the “Connect”/“Test MQTT” actions to confirm the UI reports a successful connection.
+4. Test EMQX ports (1883/8083/8084) with MQTTX, MQTT Explorer, or `mosquitto_pub/sub`.
+5. If the browser fails to connect, verify:
+   - The `.env` or runtime variables point to an IP/domain reachable from your network.
+   - Firewalls, NAT rules, or security groups allow the required ports.
+   - EMQX logs are free of authentication or connection errors.
+
+## Extension Ideas
+
+- Add reverse proxies, TLS terminators, or monitoring via `docker-compose.override.yml`.
+- Customize the login page by editing assets under `web/static` and rebuilding.
+- Introduce multi-stage builds in the `Dockerfile` if you need to compile front-end assets first.
