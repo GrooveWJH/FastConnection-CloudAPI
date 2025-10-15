@@ -20,8 +20,9 @@ RUN mkdir -p /app/static /app/env
 
 COPY web/static/ /app/static/
 COPY web/entrypoint.py /app/web_entrypoint.py
+COPY web/get_local_ip.py /app/get_local_ip.py
 COPY .env* /app/env/
-COPY start.sh /app/start.sh
+COPY scripts/start.sh /app/start.sh
 
 RUN chmod +x /app/start.sh
 

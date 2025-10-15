@@ -4,9 +4,9 @@
 
 - **Single-container deployment**: The image extends `emqx:5.0.20` and bundles the Python static server plus `login.html`.
 - **Process supervision**: `/app/start.sh` starts the Python HTTP server (`web/entrypoint.py`) and EMQX together; if either process exits, the other is stopped as well.
-- **Networking**: EMQX ports (1883/8083/8084/8883/18083) and the web UI port `WEB_BIND_PORT` are exposed one-to-one to the host.
+- **Networking**: Uses `network_mode: host` to share the host's network namespace. EMQX ports (1883/8083/8084/8883/18083) and the web UI port `WEB_BIND_PORT` are directly accessible on the host. **Note**: Host networking only works on Linux. On macOS/Windows, you'll need to use port mappings instead (see docker-compose.override.yml example below).
 - **Persistence**: EMQX data, log, and config directories are mounted as named volumes (`emqx_data`, `emqx_log`, `emqx_etc`) to avoid overwriting bundled defaults.
-- **LAN discovery**: `entrypoint.py` detects the container’s IPv4 address at startup and sets `MQTT_TCP_URL` to `tcp://<detected-ip>:1883`; the front end derives the WebSocket endpoint from this value.
+- **LAN discovery**: `entrypoint.py` detects the host's LAN IPv4 address at startup and sets `MQTT_TCP_URL` to `tcp://<detected-ip>:1883`; the front end derives the WebSocket endpoint from this value. **Linux only**: IP auto-detection works only on Linux with host networking. On macOS/Windows, manually configure the IP in the web interface or via environment variables.
 
 ## Configuration Resolution Order
 

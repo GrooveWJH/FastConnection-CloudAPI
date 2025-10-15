@@ -161,13 +161,8 @@
 
   function testMqttConnection(creds, { label = "MQTT 测试", timeoutMs = 1000 } = {}) {
     return new Promise((resolve) => {
-      if (typeof mqtt === "undefined" || !mqtt.connect) {
-        log("未找到 MQTT 测试库，无法执行连接测试。", "error");
-        return resolve(false);
-      }
-
       if (!creds.isAnonymous && (!creds.username || !creds.password)) {
-        log("账号或密码为空，无法测试连接。", "error");
+        log(`[MQTT 测试] 账号或密码为空，无法测试连接`, "error");
         return resolve(false);
       }
 
@@ -184,7 +179,7 @@
         options.password = creds.password;
       }
 
-      log(`⚙️ [${label}] 正在检测 MQTT 连接 (clientId: ${clientId})`, "info");
+      log(`[${label}] 正在检测 MQTT 连接 (clientId: ${clientId})`, "info");
 
       let finished = false;
       const tempClient = mqtt.connect(creds.wsUrl, options);
@@ -204,12 +199,12 @@
       };
 
       const timeout = setTimeout(() => {
-        done(false, `⚠️ [${label}] MQTT 检测超时 (clientId: ${clientId})`);
+        done(false, `[${label}] MQTT 检测超时 (clientId: ${clientId})`);
       }, timeoutMs);
 
       tempClient.on("connect", () => {
         clearTimeout(timeout);
-        done(true, `[${label}] MQTT 连接正常，立即断开。`, "success");
+        done(true, `[${label}] MQTT 连接测试成功`, "success");
       });
 
       tempClient.on("error", (error) => {
@@ -239,7 +234,7 @@
 
     lastCredentials = getSelectedCredentials();
     updateConnectionInfo();
-    log(`Cloud API 许可证状态：${window.djiBridge ? window.djiBridge.platformIsVerified() : "未检测到 DJI RC Cloud API"}`, "info");
+    log(`[初始化] Cloud API 许可证状态: ${window.djiBridge ? window.djiBridge.platformIsVerified() : "未检测到 DJI RC Cloud API"}`, "info");
   }
 
   authModeInputs.forEach((input) =>
@@ -261,30 +256,30 @@
   });
 
   loginButton.addEventListener("click", async () => {
-    log("=== 开始登录流程 ===", "info");
+    log("[登录] 开始登录流程", "info");
     const creds = getSelectedCredentials();
     lastCredentials = creds;
 
     if (!window.djiBridge) {
-      log("未检测到 DJI RC Cloud API 环境，请在遥控器内置浏览器中访问此页面。", "error");
+      log("[登录] 未检测到 DJI RC Cloud API 环境，请在遥控器内置浏览器中访问此页面", "error");
       return;
     }
 
     if (!creds.isAnonymous && (!creds.username || !creds.password)) {
-      log("账号或密码为空，请填写后再试。", "error");
+      log("[登录] 账号或密码为空，请填写后再试", "error");
       return;
     }
 
     try {
       const ok = await testMqttConnection(creds, { label: "登录前检测", timeoutMs: 1000 });
       if (!ok) {
-        log("MQTT 检测未通过，停止登录流程。", "error");
+        log("[登录] MQTT 检测未通过，停止登录流程", "error");
         return;
       }
 
-      log("开始验证平台许可证...", "info");
+      log("[登录] 开始验证平台许可证", "info");
       window.djiBridge.platformVerifyLicense(APP_ID, APP_KEY, LICENSE);
-      log(`平台验证状态：${window.djiBridge.platformIsVerified()}`, "info");
+      log(`[登录] 平台验证状态: ${window.djiBridge.platformIsVerified()}`, "info");
 
       const registerParams = JSON.stringify({
         host: creds.tcpUrl,
@@ -293,32 +288,29 @@
         password: creds.password,
       });
 
-      log(`加载 thing 组件：${window.djiBridge.platformLoadComponent("thing", registerParams)}`, "info");
-      log(`当前状态：${window.djiBridge.thingGetConnectState()}`, "info");
+      log(`[登录] 加载 thing 组件: ${window.djiBridge.platformLoadComponent("thing", registerParams)}`, "info");
+      log(`[登录] 当前状态: ${window.djiBridge.thingGetConnectState()}`, "info");
 
-      log(
-        `开始连接 thing：${window.djiBridge.thingConnect(creds.username, creds.password, "reg_callback")}`,
-        "info",
-      );
-      log(`Thing 连接状态：${window.djiBridge.thingGetConnectState()}`, "info");
+      log(`[登录] 开始连接 thing: ${window.djiBridge.thingConnect(creds.username, creds.password, "reg_callback")}`, "info");
+      log(`[登录] Thing 连接状态: ${window.djiBridge.thingGetConnectState()}`, "info");
       isConnected = true;
       updateConnectionInfo();
     } catch (error) {
-      log("DJI Bridge 操作错误: " + error.message, "error");
+      log(`[登录] DJI Bridge 操作错误: ${error.message}`, "error");
     }
   });
 
   logoutButton.addEventListener("click", () => {
-    log("=== 开始断开流程 ===", "info");
+    log("[登出] 开始断开流程", "info");
     if (!window.djiBridge) {
-      log("未检测到 DJI RC Cloud API 环境，跳过组件卸载。", "error");
+      log("[登出] 未检测到 DJI RC Cloud API 环境，跳过组件卸载", "error");
       isConnected = false;
       updateConnectionInfo();
       return;
     }
 
     try {
-      log(`卸载组件：${window.djiBridge.platformUnloadComponent("thing")}`, "info");
+      log(`[登出] 卸载组件: ${window.djiBridge.platformUnloadComponent("thing")}`, "info");
       if (window.djiBridge.thingDisconnect) {
         try {
           window.djiBridge.thingDisconnect();
@@ -329,35 +321,35 @@
       isConnected = false;
       updateConnectionInfo();
     } catch (error) {
-      log("DJI Bridge 注销错误: " + error.message, "error");
+      log(`[登出] DJI Bridge 注销错误: ${error.message}`, "error");
     }
   });
 
   statusButton.addEventListener("click", () => {
-    log("=== 状态报告 ===", "info");
-    log(`MQTT 连接状态：${isConnected ? "已连接" : "未连接"}`, "info");
+    log("[状态查询] 开始状态检查", "info");
+    log(`[状态查询] MQTT 连接状态: ${isConnected ? "已连接" : "未连接"}`, "info");
 
     if (!window.djiBridge) {
-      log("未检测到 DJI RC Cloud API 环境，无法查询设备状态。", "error");
+      log("[状态查询] 未检测到 DJI RC Cloud API 环境，无法查询设备状态", "error");
       isConnected = false;
       updateConnectionInfo();
       return;
     }
 
     try {
-      log(`组件加载状态：${window.djiBridge.platformIsComponentLoaded("thing")}`, "info");
+      log(`[状态查询] 组件加载状态: ${window.djiBridge.platformIsComponentLoaded("thing")}`, "info");
       const thingState = window.djiBridge.thingGetConnectState();
-      log(`Thing 状态：${thingState}`, "info");
-      log(`平台验证状态：${window.djiBridge.platformIsVerified()}`, "info");
+      log(`[状态查询] Thing 状态: ${thingState}`, "info");
+      log(`[状态查询] 平台验证状态: ${window.djiBridge.platformIsVerified()}`, "info");
       isConnected = thingState === true || thingState === 1;
       updateConnectionInfo();
     } catch (error) {
-      log("DJI Bridge 状态查询错误: " + error.message, "error");
+      log(`[状态查询] DJI Bridge 状态查询错误: ${error.message}`, "error");
     }
   });
 
   function reg_callback() {
-    log("DJI Bridge 回调触发 🎉 参数：" + Array.from(arguments).join(", "), "success");
+    log(`[回调] DJI Bridge 连接回调触发，参数: ${Array.from(arguments).join(", ")}`, "success");
     isConnected = true;
     updateConnectionInfo();
   }

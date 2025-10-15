@@ -4,9 +4,9 @@
 
 - **单容器部署**：基于 `emqx:5.0.20` 构建镜像，并包含 Python 静态服务 + `login.html` 登录页。
 - **进程管理**：`/app/start.sh` 同时启动 Python HTTP 服务与 EMQX，任一异常退出会拉停另一方。
-- **网络暴露**：容器开放 EMQX 常用端口（1883/8083/8084/8883/18083）及 Web UI 端口 `WEB_BIND_PORT`，与宿主机一一映射。
+- **网络模式**：使用 `network_mode: host` 共享宿主机网络命名空间。EMQX 常用端口（1883/8083/8084/8883/18083）及 Web UI 端口 `WEB_BIND_PORT` 直接在宿主机上可访问。**注意**：host 网络模式仅在 Linux 上有效。在 macOS/Windows 上需要使用端口映射（见下文 docker-compose.override.yml 示例）。
 - **持久化**：EMQX 的数据、日志、配置目录挂载为命名卷 (`emqx_data`、`emqx_log`、`emqx_etc`)，避免覆盖默认文件。
-- **局域网探测**：`entrypoint.py` 启动时会探测容器的 IPv4，并将默认 `MQTT_TCP_URL` 设为 `tcp://<探测IP>:1883`；前端据此推导 WebSocket 地址。
+- **局域网探测**：`entrypoint.py` 启动时会探测宿主机的局域网 IPv4，并将默认 `MQTT_TCP_URL` 设为 `tcp://<探测IP>:1883`；前端据此推导 WebSocket 地址。**仅限 Linux**：IP 自动检测仅在 Linux 的 host 网络模式下有效。在 macOS/Windows 上，需要在网页界面手动配置 IP 或通过环境变量指定。
 
 ## 配置解析顺序
 

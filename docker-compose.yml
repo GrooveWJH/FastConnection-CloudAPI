@@ -4,22 +4,19 @@ services:
       context: .
     container_name: FC-CloudAPI
     restart: always
+    network_mode: host  # 使用宿主机网络，可以正确检测局域网 IP
     environment:
-      MQTT_TCP_URL: ${MQTT_TCP_URL:-tcp://127.0.0.1:1883}
-      MQTT_WS_URL: ${MQTT_WS_URL:-ws://127.0.0.1:8083/mqtt}
+      # MQTT 配置：如果不设置环境变量，将自动检测局域网 IP
+      MQTT_TCP_URL: ${MQTT_TCP_URL:-}
+      MQTT_WS_URL: ${MQTT_WS_URL:-}
       MQTT_USERNAME: ${MQTT_USERNAME:-admin}
       MQTT_PASSWORD: ${MQTT_PASSWORD:-public}
       MQTT_WS_PORT: ${MQTT_WS_PORT:-8083}
       MQTT_WS_PATH: ${MQTT_WS_PATH:-/mqtt}
       WEB_BIND_HOST: ${WEB_BIND_HOST:-127.0.0.1}
       WEB_BIND_PORT: ${WEB_BIND_PORT:-3100}
-    ports:
-      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_BIND_PORT:-3100}:${WEB_BIND_PORT:-3100}"
-      - "1883:1883"
-      - "8083:8083"
-      - "8084:8084"
-      - "8883:8883"
-      - "18083:18083"
+    # 注意：使用 host 网络模式时，不需要端口映射
+    # 容器将直接使用宿主机的端口
     volumes:
       - emqx_data:/opt/emqx/data
       - emqx_log:/opt/emqx/log
