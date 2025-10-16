@@ -102,14 +102,14 @@ docker run -d \
 ```bash
 docker load -i emqx-5.0.20-amd64.tar
 docker load -i fc-cloudapi-amd64.tar
-docker-compose up -d
+docker compose up -d
 ```
 
 **Linux ARM64 / macOS Apple Silicon**
 ```bash
 docker load -i emqx-5.0.20-arm64.tar
 docker load -i fc-cloudapi-arm64.tar
-docker-compose up -d
+docker compose up -d
 ```
 
 **优势**：
@@ -212,7 +212,7 @@ docker load -i emqx-5.0.20-arm64.tar
 docker load -i fc-cloudapi-arm64.tar
 
 # 启动
-docker-compose up -d
+docker compose up -d
 ```
 
 ---
@@ -273,12 +273,12 @@ docker login
 # 目标机器 (x86_64)：加载镜像
 docker load -i emqx-5.0.20-amd64.tar
 docker load -i fc-cloudapi-amd64.tar
-docker-compose up -d
+docker compose up -d
 
 # 目标机器 (ARM64)：加载镜像
 docker load -i emqx-5.0.20-arm64.tar
 docker load -i fc-cloudapi-arm64.tar
-docker-compose up -d
+docker compose up -d
 ```
 
 ---

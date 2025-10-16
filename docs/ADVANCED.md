@@ -10,7 +10,7 @@
 
 ## Configuration Resolution Order
 
-1. Runtime environment variables (`docker-compose.yml` or `docker run -e ...`).
+1. Runtime environment variables (`docker compose.yml` or `docker run -e ...`).
 2. `/app/env/.env` baked into the image (copied from repository root).
 3. `/app/env/.env.example` packaged with the image.
 4. Hard-coded defaults in `web/entrypoint.py`.
