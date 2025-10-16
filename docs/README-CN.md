@@ -26,11 +26,7 @@ docker run -d \
 **macOS/Windows：**
 
 ```bash
-docker run -d \
-  --name fc-cloudapi \
-  -p 3100:3100 \
-  -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 \
-  groovewjh/fc-cloudapi:latest
+docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
 ```
 
 **平台说明：**

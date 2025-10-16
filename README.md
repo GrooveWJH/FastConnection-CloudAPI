@@ -15,6 +15,7 @@
 Prefer pulling the ready-made image? Run:
 
 **Linux:**
+
 ```bash
 docker run -d \
   --name fc-cloudapi \
@@ -23,15 +24,13 @@ docker run -d \
 ```
 
 **macOS/Windows:**
+
 ```bash
-docker run -d \
-  --name fc-cloudapi \
-  -p 3100:3100 \
-  -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 \
-  groovewjh/fc-cloudapi:latest
+docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
 ```
 
 **Platform Notes:**
+
 - **Linux**: `--network host` works. The login page will auto-detect and pre-fill the LAN IP address.
 - **macOS/Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
 - **Windows**: Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
