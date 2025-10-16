@@ -100,12 +100,42 @@ echo ""
 echo "ℹ️  构建多架构镜像并缓存（不加载到本地 Docker）"
 echo ""
 
-docker buildx build \
-    --platform linux/amd64,linux/arm64 \
-    --tag "${IMAGE_NAME}:${VERSION}" \
-    --tag "${IMAGE_NAME}:latest" \
-    --cache-to type=inline \
-    .
+# 构建命令（带重试）
+MAX_RETRIES=3
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if docker buildx build \
+        --platform linux/amd64,linux/arm64 \
+        --tag "${IMAGE_NAME}:${VERSION}" \
+        --tag "${IMAGE_NAME}:latest" \
+        --cache-to type=inline \
+        .; then
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo ""
+            echo "⚠️  构建失败，${RETRY_COUNT}/${MAX_RETRIES} 次重试..."
+            echo "   等待 5 秒后重试..."
+            sleep 5
+        else
+            echo ""
+            echo "❌ 构建失败，已重试 ${MAX_RETRIES} 次"
+            echo ""
+            echo "可能的原因："
+            echo "  1. 网络不稳定，无法连接 Docker Hub"
+            echo "  2. Docker daemon 配置问题"
+            echo "  3. 基础镜像 (emqx:5.0.20) 拉取失败"
+            echo ""
+            echo "建议："
+            echo "  1. 检查网络连接"
+            echo "  2. 尝试配置 Docker 镜像加速器"
+            echo "  3. 稍后重试"
+            exit 1
+        fi
+    fi
+done
 
 echo ""
 echo "==========================================="

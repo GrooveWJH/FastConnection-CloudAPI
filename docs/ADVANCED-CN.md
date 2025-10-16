@@ -10,7 +10,7 @@
 
 ## 配置解析顺序
 
-1. 运行时环境变量（`docker-compose.yml` 或 `docker run -e ...`）。
+1. 运行时环境变量（`docker compose.yml` 或 `docker run -e ...`）。
 2. 镜像内 `/app/env/.env`（仓库根目录 `.env` 拷贝）。
 3. 镜像内 `/app/env/.env.example`。
 4. 代码默认值（`web/entrypoint.py` 中）。
