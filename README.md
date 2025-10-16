@@ -1,6 +1,5 @@
 # FastConnection-CloudAPI
 
-[![GitHub release](https://img.shields.io/github/v/release/groovewjh/FastConnection-CloudAPI?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/groovewjh/fc-cloudapi?style=flat-square)](https://hub.docker.com/r/groovewjh/fc-cloudapi)
 [![License](https://img.shields.io/github/license/groovewjh/FastConnection-CloudAPI?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-blue?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
@@ -12,22 +11,35 @@
 
 ## Use Docker run
 
-Prefer pulling the ready-made image? Run:
+**Quick Start (recommended):**
 
 **Linux:**
 
 ```bash
-docker run -d \
-  --name fc-cloudapi \
-  --network host \
-  groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
 ```
 
 **macOS/Windows:**
 
 ```bash
-docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
 ```
+
+**Force Update (when new version available):**
+
+**Linux:**
+
+```bash
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+```
+
+**macOS/Windows:**
+
+```bash
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+```
+
+> **Tip**: Use the quick start command for normal use. Add `--pull always` only when you want to force update to the latest version.
 
 **Platform Notes:**
 
@@ -50,6 +62,26 @@ docker logs fc-cloudapi
 # Remove the container
 docker rm fc-cloudapi
 ```
+
+**Update to the latest version:**
+
+```bash
+# Stop and remove the old container
+docker stop fc-cloudapi
+docker rm fc-cloudapi
+
+# Pull the latest image
+docker pull groovewjh/fc-cloudapi:latest
+
+# Recreate the container with the new image
+# Linux:
+docker run -d --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+
+# macOS/Windows:
+docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+```
+
+> **Note**: `docker start` uses the existing container image. To get the latest updates, you must pull the new image and recreate the container.
 
 ## Run with Source Code
 
