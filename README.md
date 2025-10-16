@@ -47,6 +47,12 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-clou
 - **macOS/Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
 - **Windows**: Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
 
+**Port Information:**
+
+- **Port 3100**: Web UI for DJI RC (remote controller) to access via browser
+- **Port 18083**: EMQX Dashboard for local machine access (admin panel)
+- **Ports 1883, 8083, 8084, 8883**: MQTT broker ports
+
 **Managing the container:**
 
 ```bash

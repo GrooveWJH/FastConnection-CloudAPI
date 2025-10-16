@@ -21,6 +21,7 @@ RUN mkdir -p /app/static /app/env
 COPY web/static/ /app/static/
 COPY web/entrypoint.py /app/web_entrypoint.py
 COPY web/get_local_ip.py /app/get_local_ip.py
+COPY web/diagnose.py /app/diagnose.py
 COPY .env* /app/env/
 COPY scripts/start.sh /app/start.sh
 

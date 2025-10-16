@@ -44,6 +44,12 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-clou
 - **macOS/Windows**：不支持 `--network host`，需使用端口映射 (`-p`)，并在网页界面手动输入 IP 地址。
 - **Windows**：Docker Desktop 会自动转发端口到 Windows 主机，可在 Windows 浏览器中访问 `http://localhost:3100`。
 
+**端口说明：**
+
+- **端口 3100**：Web 界面，供 DJI 遥控器通过浏览器访问
+- **端口 18083**：EMQX 管理面板，供本机访问（管理后台）
+- **端口 1883, 8083, 8084, 8883**：MQTT 服务端口
+
 **容器管理：**
 
 ```bash
