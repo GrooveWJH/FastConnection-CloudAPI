@@ -1,9 +1,20 @@
 # FastConnection-CloudAPI
 
+[![GitHub release](https://img.shields.io/github/v/release/groovewjh/FastConnection-CloudAPI?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/groovewjh/fc-cloudapi?style=flat-square)](https://hub.docker.com/r/groovewjh/fc-cloudapi)
+[![License](https://img.shields.io/github/license/groovewjh/FastConnection-CloudAPI?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-blue?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
+[![Architecture](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-green?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
+
+[![中文文档](https://img.shields.io/badge/文档-中文-blue?style=flat-square)](docs/README-CN.md)
+
+---
+
 ## Use Docker run
 
 Prefer pulling the ready-made image? Run:
 
+**Linux:**
 ```bash
 docker run -d \
   --name fc-cloudapi \
@@ -11,7 +22,19 @@ docker run -d \
   groovewjh/fc-cloudapi:latest
 ```
 
-**Note**: `--network host` only works on Linux. The login page will auto-detect and pre-fill the LAN IP address on Linux hosts. On macOS/Windows, you need to manually enter the IP address in the web interface.
+**macOS/Windows:**
+```bash
+docker run -d \
+  --name fc-cloudapi \
+  -p 3100:3100 \
+  -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 \
+  groovewjh/fc-cloudapi:latest
+```
+
+**Platform Notes:**
+- **Linux**: `--network host` works. The login page will auto-detect and pre-fill the LAN IP address.
+- **macOS/Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
+- **Windows**: Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
 
 **Managing the container:**
 

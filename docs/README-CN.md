@@ -1,8 +1,20 @@
 # FastConnection-CloudAPI
 
+[![GitHub release](https://img.shields.io/github/v/release/groovewjh/FastConnection-CloudAPI?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/groovewjh/fc-cloudapi?style=flat-square)](https://hub.docker.com/r/groovewjh/fc-cloudapi)
+[![License](https://img.shields.io/github/license/groovewjh/FastConnection-CloudAPI?style=flat-square)](LICENSE)
+[![平台](https://img.shields.io/badge/平台-Linux%20%7C%20macOS%20%7C%20Windows-blue?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
+[![架构](https://img.shields.io/badge/架构-amd64%20%7C%20arm64-green?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
+
+[![English Docs](https://img.shields.io/badge/docs-English-blue?style=flat-square)](../README.md)
+
+---
+
 ## 使用 Docker 运行
 
 已有构建好的镜像，可直接运行：
+
+**Linux：**
 
 ```bash
 docker run -d \
@@ -11,7 +23,21 @@ docker run -d \
   groovewjh/fc-cloudapi:latest
 ```
 
-**注意**：`--network host` 仅在 Linux 上有效。在 Linux 系统上，登录页会自动检测并预填充局域网 IP 地址。在 macOS/Windows 上，需要在网页界面手动输入 IP 地址。
+**macOS/Windows：**
+
+```bash
+docker run -d \
+  --name fc-cloudapi \
+  -p 3100:3100 \
+  -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 \
+  groovewjh/fc-cloudapi:latest
+```
+
+**平台说明：**
+
+- **Linux**：支持 `--network host`，登录页会自动检测并预填充局域网 IP 地址。
+- **macOS/Windows**：不支持 `--network host`，需使用端口映射 (`-p`)，并在网页界面手动输入 IP 地址。
+- **Windows**：Docker Desktop 会自动转发端口到 Windows 主机，可在 Windows 浏览器中访问 `http://localhost:3100`。
 
 **容器管理：**
 
