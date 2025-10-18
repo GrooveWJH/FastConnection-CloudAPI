@@ -16,13 +16,25 @@
 **Linux:**
 
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --network host -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**macOS/Windows:**
+**macOS:**
 
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (PowerShell):**
+
+```powershell
+docker rm -f fc-cloudapi 2>$null; docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (CMD):**
+
+```cmd
+docker rm -f fc-cloudapi 2>nul & docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
 **Force Update (when new version available):**
@@ -30,13 +42,25 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi -p 3100:3
 **Linux:**
 
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi --network host -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**macOS/Windows:**
+**macOS:**
 
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (PowerShell):**
+
+```powershell
+docker rm -f fc-cloudapi 2>$null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (CMD):**
+
+```cmd
+docker rm -f fc-cloudapi 2>nul & docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
 > **Tip**: Use the quick start command for normal use. Add `--pull always` only when you want to force update to the latest version.
@@ -44,8 +68,9 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-clou
 **Platform Notes:**
 
 - **Linux**: `--network host` works. The login page will auto-detect and pre-fill the LAN IP address.
-- **macOS/Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
-- **Windows**: Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
+- **macOS**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
+- **Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
+- **Data Persistence**: All commands use Docker named volumes (`fc-emqx-data`, `fc-emqx-log`, `fc-emqx-etc`) to persist EMQX data. Your MQTT configuration and data will be preserved even if you remove and recreate the container.
 
 **Port Information:**
 
