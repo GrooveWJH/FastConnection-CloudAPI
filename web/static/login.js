@@ -17,6 +17,7 @@
   const logoutButton = document.getElementById("logout-button");
   const statusButton = document.getElementById("status-button");
   const testButton = document.getElementById("test-button");
+  const rememberCredentialsCheckbox = document.getElementById("remember-credentials");
 
   const APP_ID = 171440;
   const LICENSE =
@@ -224,8 +225,16 @@
   function initDefaults() {
     const stored = loadStoredState();
     hostInput.value = stored.host?.trim() || defaultHostDisplay();
-    usernameInput.value = appConfig.mqttUsername || "admin";
-    passwordInput.value = appConfig.mqttPassword || "public";
+
+    if (stored.rememberCredentials) {
+      usernameInput.value = stored.username || '';
+      passwordInput.value = stored.password || '';
+      rememberCredentialsCheckbox.checked = true;
+    } else {
+      usernameInput.value = appConfig.mqttUsername || "admin";
+      passwordInput.value = appConfig.mqttPassword || "public";
+      rememberCredentialsCheckbox.checked = false;
+    }
 
     const defaultAnonymous = !usernameInput.value && !passwordInput.value;
     authModeInputs.forEach((input) => {
@@ -259,6 +268,20 @@
     log("[登录] 开始登录流程", "info");
     const creds = getSelectedCredentials();
     lastCredentials = creds;
+
+    if (rememberCredentialsCheckbox.checked) {
+      saveStoredState({
+        rememberCredentials: true,
+        username: creds.username,
+        password: creds.password,
+      });
+    } else {
+      saveStoredState({
+        rememberCredentials: false,
+        username: "",
+        password: "",
+      });
+    }
 
     if (!window.djiBridge) {
       log("[登录] 未检测到 DJI RC Cloud API 环境，请在遥控器内置浏览器中访问此页面", "error");
