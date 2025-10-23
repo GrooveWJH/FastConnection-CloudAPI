@@ -16,12 +16,12 @@
 
 **Linux：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped --network host groovewjh/fc-cloudapi:latest
 ```
 
 **macOS/Windows：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
 ```
 
 **强制更新（当有新版本时）：**
@@ -66,6 +66,8 @@ docker logs fc-cloudapi
 docker rm fc-cloudapi
 ```
 
+**提示**：在 macOS/Windows 上，请确保 Docker Desktop 设置为开机自启动，这样系统登录后容器才能自动恢复。
+
 **更新到最新版本：**
 
 ```bash
@@ -104,3 +106,11 @@ docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:
 - **[ADVANCED.md](ADVANCED.md)** / **[ADVANCED-CN.md](ADVANCED-CN.md)** - 高级配置
 - **[BUILD.md](BUILD.md)** - 多架构构建指南
 - **[README.md](../README.md)** - 英文文档
+
+## 许可
+
+本项目采用 **GNU Affero 通用公共许可证 v3.0 (AGPLv3)** 进行许可。
+
+这意味着您可以自由使用、修改和分发本软件。但如果您在网络上运行本软件以提供服务，您必须将修改后版本的源代码向用户提供。
+
+如果您的商业应用场景无法满足 AGPLv3 的条款（例如，您不希望开源您的衍生产品），我们提供商业许可。请通过邮件联系 [groovewjh@foxmail.com](mailto:groovewjh@foxmail.com) 以获取更多信息。
