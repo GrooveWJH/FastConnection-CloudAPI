@@ -1,0 +1,32 @@
+:root {
+  --bg: #f0f2f5;
+  --panel-bg: #ffffff;
+  --panel-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --info: #0ea5e9;
+  --info-strong: #0284c7;
+  --warning: #f59e0b;
+  --warning-strong: #d97706;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --radius: 12px;
+  --space: 1.8vmin;
+  --font-small: 1.4vmin;
+  --font-base: 1.7vmin;
+  --font-large: 2.2vmin;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: 'Inter', 'Segoe UI', 'PingFang SC', sans-serif;
+  color: var(--text-primary);
+}
