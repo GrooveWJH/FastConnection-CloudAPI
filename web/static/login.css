@@ -32,9 +32,9 @@ body {
 }
 
  .page-wrapper {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: calc(var(--space) * 0.6);
   height: 100vh;
   width: 100vw;
@@ -44,18 +44,25 @@ body {
 }
 
 .panel-controls {
-  flex: 0 1 60%;
-  min-width: 280px;
-  max-width: 60%;
+  grid-column: 1;
+  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
   gap: calc(var(--space) * 0.6);
+  overflow-y: auto;
 }
 
 .panel-logs {
-  flex: 0 1 40%;
-  min-width: 220px;
-  max-width: 40%;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-modules {
+  grid-column: 2;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -76,7 +83,7 @@ body {
   font-weight: 700;
 }
 
-.panel-logs h2 {
+.panel h2 {
   margin: 0 0 calc(var(--space) * 0.6);
   font-size: var(--font-large);
   font-weight: 600;
@@ -106,10 +113,11 @@ body {
 }
 
 .endpoint-settings input {
-  padding: calc(var(--space) * 0.45) calc(var(--space) * 0.6);
+  padding: calc(var(--space) * 0.5) calc(var(--space) * 0.7);
   border-radius: calc(var(--radius) - 6px);
   border: 1px solid rgba(148, 163, 184, 0.6);
-  font-size: var(--font-base);
+  font-size: calc(var(--font-base) * 1.15);
+  font-family: 'JetBrains Mono', 'Courier New', 'Consolas', monospace;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -176,11 +184,11 @@ body {
 }
 
 button {
-  padding: calc(var(--space) * 1.1);
-  min-height: calc(var(--space) * 2.6);
+  padding: calc(var(--space) * 1.2);
+  min-height: calc(var(--space) * 3);
   border-radius: calc(var(--radius) - 4px);
   border: none;
-  font-size: calc(var(--font-base) * 1.1);
+  font-size: calc(var(--font-base) * 1.35);
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -259,15 +267,92 @@ button:hover {
   margin-left: 0.6vmin;
   margin-right: 0.6vmin;
   vertical-align: middle;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
 }
 
 .status-connected {
   background: #4caf50;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
 }
 
 .status-disconnected {
   background: #ef4444;
-  box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
+
+/* 模块控制台样式 */
+.modules-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 0.6);
+  overflow-y: auto;
+  padding: calc(var(--space) * 0.6);
+  background: #0f172a;
+  border-radius: calc(var(--radius) - 4px);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
+}
+
+.module-item {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(15, 23, 42, 0.3));
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: calc(var(--radius) - 6px);
+  padding: calc(var(--space) * 0.8);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.module-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  border-color: rgba(37, 99, 235, 0.5);
+}
+
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: calc(var(--space) * 0.4);
+}
+
+.module-name {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.module-status-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #64748b;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.6);
+  transition: all 0.3s ease;
+}
+
+.module-status-indicator.active {
+  background: #22c55e;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.module-status-indicator.inactive {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8), 0 0 24px rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(34, 197, 94, 1), 0 0 32px rgba(34, 197, 94, 0.6);
+  }
+}
+
+.module-info {
+  font-size: var(--font-small);
+  color: #94a3b8;
+  line-height: 1.5;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+

@@ -22,3 +22,5 @@ web/static/config.js
 *.tar
 fc-cloudapi-*.tar
 emqx-*.tar
+
+tmp/

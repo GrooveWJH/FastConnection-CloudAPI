@@ -17,7 +17,12 @@
   const logoutButton = document.getElementById("logout-button");
   const statusButton = document.getElementById("status-button");
   const testButton = document.getElementById("test-button");
-  const rememberCredentialsCheckbox = document.getElementById("remember-credentials");
+
+  // 模块状态指示器
+  const thingStatusIndicator = document.getElementById("thing-status");
+  const thingInfo = document.getElementById("thing-info");
+  const liveshareStatusIndicator = document.getElementById("liveshare-status");
+  const liveshareInfo = document.getElementById("liveshare-info");
 
   const APP_ID = 171440;
   const LICENSE =
@@ -55,6 +60,170 @@
     entry.textContent = `[${now}] ${message}`;
     logsContainer.appendChild(entry);
     logsContainer.scrollTop = logsContainer.scrollHeight;
+  }
+
+  function preloadModules() {
+    if (!window.djiBridge) {
+      log("[预加载] 未检测到 DJI RC Cloud API 环境，跳过模块预加载", "error");
+      return;
+    }
+
+    try {
+      // 1. 验证许可证
+      log("[预加载] 开始验证平台许可证", "info");
+      window.djiBridge.platformVerifyLicense(APP_ID, APP_KEY, LICENSE);
+      const verified = window.djiBridge.platformIsVerified();
+      log(`[预加载] 平台验证状态: ${verified}`, verified ? "success" : "error");
+
+      if (!verified) {
+        log("[预加载] 许可证验证失败，跳过模块加载", "error");
+        return;
+      }
+
+      // 2. 从存储中获取配置
+      const stored = loadStoredState();
+      const creds = getSelectedCredentials();
+
+      // 检查是否有有效的配置
+      const hasValidConfig = creds.username && creds.password;
+      if (!hasValidConfig) {
+        log("[预加载] 未找到有效的账号密码配置，使用默认值", "info");
+      }
+
+      // 3. 加载 Thing 模块（不连接）
+      const thingParams = JSON.stringify({
+        host: creds.tcpUrl,
+        connectCallback: "reg_callback",
+        username: creds.username || "",
+        password: creds.password || "",
+      });
+
+      log("[预加载] 加载设备上云模块...", "info");
+      const thingResult = window.djiBridge.platformLoadComponent("thing", thingParams);
+
+      try {
+        const thingResultObj = JSON.parse(thingResult);
+        if (thingResultObj.code === 0) {
+          log(`[预加载] 设备上云模块加载成功`, "success");
+        } else {
+          log(`[预加载] 设备上云模块加载失败: ${thingResultObj.message || '未知错误'}`, "error");
+        }
+      } catch (e) {
+        log(`[预加载] 设备上云模块加载结果: ${thingResult}`, "success");
+      }
+
+      // 4. 加载 Liveshare 模块
+      const liveshareParams = JSON.stringify({
+        videoPublishType: "video-on-demand",
+        statusCallback: "liveshare_callback"
+      });
+
+      log("[预加载] 加载直播模块...", "info");
+      const liveshareResult = window.djiBridge.platformLoadComponent("liveshare", liveshareParams);
+
+      try {
+        const liveshareResultObj = JSON.parse(liveshareResult);
+        if (liveshareResultObj.code === 0) {
+          log(`[预加载] 直播模块加载成功`, "success");
+        } else {
+          log(`[预加载] 直播模块加载失败: ${liveshareResultObj.message || '未知错误'}`, "error");
+        }
+      } catch (e) {
+        log(`[预加载] 直播模块加载结果: ${liveshareResult}`, "success");
+      }
+
+      // 5. 延迟检查模块状态
+      setTimeout(() => {
+        log("[预加载] 检查模块加载状态", "info");
+        checkModuleStatus();
+      }, 500);
+
+    } catch (error) {
+      log(`[预加载] 模块预加载出错: ${error.message}`, "error");
+    }
+  }
+
+  function updateModuleStatus(moduleName, isLoaded, additionalInfo = "") {
+    let statusIndicator, infoElement;
+
+    if (moduleName === "thing") {
+      statusIndicator = thingStatusIndicator;
+      infoElement = thingInfo;
+    } else if (moduleName === "liveshare") {
+      statusIndicator = liveshareStatusIndicator;
+      infoElement = liveshareInfo;
+    } else {
+      return;
+    }
+
+    if (isLoaded) {
+      statusIndicator.classList.remove("inactive");
+      statusIndicator.classList.add("active");
+      infoElement.textContent = additionalInfo || "已加载";
+      infoElement.style.color = "#86efac";
+    } else {
+      statusIndicator.classList.remove("active");
+      statusIndicator.classList.add("inactive");
+      infoElement.textContent = additionalInfo || "未加载";
+      infoElement.style.color = "#94a3b8";
+    }
+  }
+
+  function checkModuleStatus() {
+    if (!window.djiBridge) {
+      log("[模块检查] 未检测到 DJI RC Cloud API 环境", "error");
+      updateModuleStatus("thing", false, "环境未就绪");
+      updateModuleStatus("liveshare", false, "环境未就绪");
+      return;
+    }
+
+    try {
+      // 检查设备上云模块
+      const thingLoaded = window.djiBridge.platformIsComponentLoaded("thing");
+      const thingLoadedBool = thingLoaded === true || thingLoaded === "true" || thingLoaded === 1;
+
+      if (thingLoadedBool) {
+        const thingState = window.djiBridge.thingGetConnectState();
+        const connected = thingState === true || thingState === 1;
+        updateModuleStatus("thing", true, connected ? "已连接" : "已加载，未连接");
+        log(`[模块检查] 设备上云模块: 已加载 (连接状态: ${connected ? "已连接" : "未连接"})`, "info");
+      } else {
+        updateModuleStatus("thing", false);
+        log("[模块检查] 设备上云模块: 未加载", "info");
+      }
+
+      // 检查直播模块
+      const liveshareLoaded = window.djiBridge.platformIsComponentLoaded("liveshare");
+      const liveshareLoadedBool = liveshareLoaded === true || liveshareLoaded === "true" || liveshareLoaded === 1;
+
+      if (liveshareLoadedBool) {
+        try {
+          const liveshareConfig = window.djiBridge.liveshareGetConfig();
+          let configInfo = "已加载";
+          if (liveshareConfig) {
+            try {
+              const config = JSON.parse(liveshareConfig);
+              if (config && config.data) {
+                const typeNames = {0: "未知", 1: "声网", 2: "RTMP", 3: "RTSP", 4: "GB28181"};
+                configInfo = `已加载 (${typeNames[config.data.type] || "未知类型"})`;
+              }
+            } catch (e) {
+              // 解析失败，使用默认信息
+            }
+          }
+          updateModuleStatus("liveshare", true, configInfo);
+          log(`[模块检查] 直播模块: ${configInfo}`, "info");
+        } catch (err) {
+          updateModuleStatus("liveshare", true, "已加载");
+          log("[模块检查] 直播模块: 已加载", "info");
+        }
+      } else {
+        updateModuleStatus("liveshare", false);
+        log("[模块检查] 直播模块: 未加载", "info");
+      }
+    } catch (error) {
+      log(`[模块检查] 检查模块状态时出错: ${error.message}`, "error");
+    }
   }
 
   function parseHostFromUrl(url) {
@@ -226,15 +395,9 @@
     const stored = loadStoredState();
     hostInput.value = stored.host?.trim() || defaultHostDisplay();
 
-    if (stored.rememberCredentials) {
-      usernameInput.value = stored.username || '';
-      passwordInput.value = stored.password || '';
-      rememberCredentialsCheckbox.checked = true;
-    } else {
-      usernameInput.value = appConfig.mqttUsername || "admin";
-      passwordInput.value = appConfig.mqttPassword || "public";
-      rememberCredentialsCheckbox.checked = false;
-    }
+    // 默认记住账号密码，从存储中读取
+    usernameInput.value = stored.username || appConfig.mqttUsername || "admin";
+    passwordInput.value = stored.password || appConfig.mqttPassword || "public";
 
     const defaultAnonymous = !usernameInput.value && !passwordInput.value;
     authModeInputs.forEach((input) => {
@@ -244,6 +407,9 @@
     lastCredentials = getSelectedCredentials();
     updateConnectionInfo();
     log(`[初始化] Cloud API 许可证状态: ${window.djiBridge ? window.djiBridge.platformIsVerified() : "未检测到 DJI RC Cloud API"}`, "info");
+
+    // 预加载模块（许可证验证 + 模块加载）
+    preloadModules();
   }
 
   authModeInputs.forEach((input) =>
@@ -269,19 +435,11 @@
     const creds = getSelectedCredentials();
     lastCredentials = creds;
 
-    if (rememberCredentialsCheckbox.checked) {
-      saveStoredState({
-        rememberCredentials: true,
-        username: creds.username,
-        password: creds.password,
-      });
-    } else {
-      saveStoredState({
-        rememberCredentials: false,
-        username: "",
-        password: "",
-      });
-    }
+    // 默认记住账号密码
+    saveStoredState({
+      username: creds.username,
+      password: creds.password,
+    });
 
     if (!window.djiBridge) {
       log("[登录] 未检测到 DJI RC Cloud API 环境，请在遥控器内置浏览器中访问此页面", "error");
@@ -300,24 +458,55 @@
         return;
       }
 
-      log("[登录] 开始验证平台许可证", "info");
-      window.djiBridge.platformVerifyLicense(APP_ID, APP_KEY, LICENSE);
-      log(`[登录] 平台验证状态: ${window.djiBridge.platformIsVerified()}`, "info");
+      // 检查模块是否已预加载
+      const thingLoaded = window.djiBridge.platformIsComponentLoaded("thing");
+      const liveshareLoaded = window.djiBridge.platformIsComponentLoaded("liveshare");
 
-      const registerParams = JSON.stringify({
-        host: creds.tcpUrl,
-        connectCallback: "reg_callback",
-        username: creds.username,
-        password: creds.password,
-      });
+      // 如果模块未加载，则加载（降级方案）
+      if (!thingLoaded) {
+        log("[登录] 设备上云模块未加载，开始加载", "info");
+        const registerParams = JSON.stringify({
+          host: creds.tcpUrl,
+          connectCallback: "reg_callback",
+          username: creds.username,
+          password: creds.password,
+        });
+        window.djiBridge.platformLoadComponent("thing", registerParams);
+      }
 
-      log(`[登录] 加载 thing 组件: ${window.djiBridge.platformLoadComponent("thing", registerParams)}`, "info");
-      log(`[登录] 当前状态: ${window.djiBridge.thingGetConnectState()}`, "info");
+      if (!liveshareLoaded) {
+        log("[登录] 直播模块未加载，开始加载", "info");
+        const liveshareParams = JSON.stringify({
+          videoPublishType: "video-on-demand",
+          statusCallback: "liveshare_callback"
+        });
+        window.djiBridge.platformLoadComponent("liveshare", liveshareParams);
+      }
 
-      log(`[登录] 开始连接 thing: ${window.djiBridge.thingConnect(creds.username, creds.password, "reg_callback")}`, "info");
+      // 建立 Thing 连接
+      log(`[登录] 开始连接设备上云模块`, "info");
+      const connectResult = window.djiBridge.thingConnect(creds.username, creds.password, "reg_callback");
+
+      try {
+        const connectResultObj = JSON.parse(connectResult);
+        if (connectResultObj.code === 0) {
+          log(`[登录] Thing 连接成功`, "success");
+        } else {
+          log(`[登录] Thing 连接失败: ${connectResultObj.message || '未知错误'}`, "error");
+        }
+      } catch (e) {
+        log(`[登录] Thing 连接结果: ${connectResult}`, "info");
+      }
+
       log(`[登录] Thing 连接状态: ${window.djiBridge.thingGetConnectState()}`, "info");
+
       isConnected = true;
       updateConnectionInfo();
+
+      // 更新模块状态
+      setTimeout(() => {
+        checkModuleStatus();
+      }, 500);
     } catch (error) {
       log(`[登录] DJI Bridge 操作错误: ${error.message}`, "error");
     }
@@ -329,11 +518,41 @@
       log("[登出] 未检测到 DJI RC Cloud API 环境，跳过组件卸载", "error");
       isConnected = false;
       updateConnectionInfo();
+      checkModuleStatus();
       return;
     }
 
     try {
-      log(`[登出] 卸载组件: ${window.djiBridge.platformUnloadComponent("thing")}`, "info");
+      // 卸载直播模块
+      log("[登出] 卸载直播模块...", "info");
+      const liveshareUnloadResult = window.djiBridge.platformUnloadComponent("liveshare");
+
+      try {
+        const liveshareUnloadObj = JSON.parse(liveshareUnloadResult);
+        if (liveshareUnloadObj.code === 0) {
+          log(`[登出] 直播模块卸载成功`, "success");
+        } else {
+          log(`[登出] 直播模块卸载失败: ${liveshareUnloadObj.message || '未知错误'}`, "error");
+        }
+      } catch (e) {
+        log(`[登出] 直播模块卸载结果: ${liveshareUnloadResult}`, "info");
+      }
+
+      // 卸载设备上云模块
+      log("[登出] 卸载设备上云模块...", "info");
+      const thingUnloadResult = window.djiBridge.platformUnloadComponent("thing");
+
+      try {
+        const thingUnloadObj = JSON.parse(thingUnloadResult);
+        if (thingUnloadObj.code === 0) {
+          log(`[登出] 设备上云模块卸载成功`, "success");
+        } else {
+          log(`[登出] 设备上云模块卸载失败: ${thingUnloadObj.message || '未知错误'}`, "error");
+        }
+      } catch (e) {
+        log(`[登出] 设备上云模块卸载结果: ${thingUnloadResult}`, "info");
+      }
+
       if (window.djiBridge.thingDisconnect) {
         try {
           window.djiBridge.thingDisconnect();
@@ -343,6 +562,11 @@
       }
       isConnected = false;
       updateConnectionInfo();
+
+      // 更新模块状态
+      setTimeout(() => {
+        checkModuleStatus();
+      }, 300);
     } catch (error) {
       log(`[登出] DJI Bridge 注销错误: ${error.message}`, "error");
     }
@@ -356,6 +580,7 @@
       log("[状态查询] 未检测到 DJI RC Cloud API 环境，无法查询设备状态", "error");
       isConnected = false;
       updateConnectionInfo();
+      checkModuleStatus();
       return;
     }
 
@@ -366,6 +591,9 @@
       log(`[状态查询] 平台验证状态: ${window.djiBridge.platformIsVerified()}`, "info");
       isConnected = thingState === true || thingState === 1;
       updateConnectionInfo();
+
+      // 更新模块状态
+      checkModuleStatus();
     } catch (error) {
       log(`[状态查询] DJI Bridge 状态查询错误: ${error.message}`, "error");
     }
@@ -375,8 +603,28 @@
     log(`[回调] DJI Bridge 连接回调触发，参数: ${Array.from(arguments).join(", ")}`, "success");
     isConnected = true;
     updateConnectionInfo();
+    checkModuleStatus();
+  }
+
+  function liveshare_callback(status) {
+    try {
+      const statusObj = typeof status === "string" ? JSON.parse(status) : status;
+      log(`[直播回调] 直播状态变化: ${JSON.stringify(statusObj)}`, "info");
+
+      // 更新直播模块状态
+      if (statusObj && statusObj.status !== undefined) {
+        const statusNames = {0: "未连接", 1: "已连接服务器", 2: "正在直播"};
+        const statusText = statusNames[statusObj.status] || "未知状态";
+        const isActive = statusObj.status >= 1;
+
+        updateModuleStatus("liveshare", isActive, statusText);
+      }
+    } catch (error) {
+      log(`[直播回调] 解析状态出错: ${error.message}`, "error");
+    }
   }
 
   window.addEventListener("load", initDefaults);
   window.reg_callback = reg_callback;
+  window.liveshare_callback = liveshare_callback;
 })();

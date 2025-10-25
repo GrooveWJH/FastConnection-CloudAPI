@@ -42,12 +42,6 @@
             <input id="mqtt-password" type="password" autocomplete="current-password" />
           </label>
         </div>
-        <div class="auth-option">
-          <label>
-            <input type="checkbox" id="remember-credentials" />
-            记住账号密码
-          </label>
-        </div>
       </section>
 
         <div class="button-row">
@@ -63,6 +57,26 @@
       <section class="panel panel-logs">
         <h2>终端日志</h2>
         <div id="logs"></div>
+      </section>
+
+      <section class="panel panel-modules">
+        <h2>模块控制台</h2>
+        <div class="modules-container">
+          <div class="module-item">
+            <div class="module-header">
+              <span class="module-name">设备上云模块</span>
+              <span class="module-status-indicator" id="thing-status"></span>
+            </div>
+            <div class="module-info" id="thing-info">未加载</div>
+          </div>
+          <div class="module-item">
+            <div class="module-header">
+              <span class="module-name">直播模块</span>
+              <span class="module-status-indicator" id="liveshare-status"></span>
+            </div>
+            <div class="module-info" id="liveshare-info">未加载</div>
+          </div>
+        </div>
       </section>
     </div>
     <script src="/mqtt.min.js"></script>
