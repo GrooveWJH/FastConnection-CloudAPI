@@ -3,7 +3,6 @@
  */
 
 import { Logger } from './logger.js';
-import { AppState } from './state.js';
 
 // DJI Cloud API credentials
 const APP_ID = 171440;
@@ -31,6 +30,34 @@ export const DJIBridge = {
     const verified = window.djiBridge.platformIsVerified();
     Logger.log(`[许可证] 验证${verified ? "成功" : "失败"}`, verified ? "success" : "error");
     return verified;
+  },
+
+  /**
+   * Get Remote Controller Serial Number
+   */
+  getRemoteControllerSN() {
+    if (!this.isAvailable()) return null;
+    try {
+      const result = window.djiBridge.platformGetRemoteControllerSN();
+      const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+      return parsed.code === 0 ? parsed.data : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  /**
+   * Get Aircraft Serial Number
+   */
+  getAircraftSN() {
+    if (!this.isAvailable()) return null;
+    try {
+      const result = window.djiBridge.platformGetAircraftSN();
+      const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+      return parsed.code === 0 ? parsed.data : null;
+    } catch (e) {
+      return null;
+    }
   },
 
   /**
@@ -118,7 +145,7 @@ export const DJIBridge = {
   /**
    * Connect Thing module
    */
-  connectThing(username, password, callback) {
+  connectThing(username, password, callback = "") {
     if (!this.isAvailable()) {
       throw new Error("DJI Bridge not available");
     }

@@ -6,6 +6,7 @@ import { Logger } from './logger.js';
 import { AppState } from './state.js';
 import { DJIBridge } from './bridge.js';
 import { Handlers } from './handlers.js';
+import { connectionManager } from './main.js';
 
 export const UI = {
   // DOM elements
@@ -19,8 +20,13 @@ export const UI = {
     this.bindEvents();
     this.updateModuleStatus("thing", false, "未加载");
     this.updateModuleStatus("liveshare", false, "未加载");
-    this.updateConnectionInfo();
+    this.showDisconnected();  // Initial state
     Handlers.ui = this;
+
+    // Set ConnectionManager UI reference
+    if (connectionManager) {
+      connectionManager.setUI(this);
+    }
   },
 
   /**
@@ -84,10 +90,13 @@ export const UI = {
    */
   updateConnectionInfo() {
     const creds = AppState.getCredentials(window.APP_CONFIG || {});
-    const statusClass = AppState.isConnected ? "status-connected" : "status-disconnected";
-    const statusText = AppState.isConnected ? "已连接" : "未连接";
-    const accountText = creds.isAnonymous ? "匿名连接" : creds.username || "(未填写)";
-    const passwordText = creds.isAnonymous ? "（匿名）" : creds.password ? "******" : "(未填写)";
+    const isConnected = connectionManager ? connectionManager.isConnected() : false;
+    const statusClass = isConnected ? "status-connected" : "status-disconnected";
+    const statusText = isConnected ? "已连接" : "未连接";
+
+    // Get device serial numbers
+    const rcSN = DJIBridge.getRemoteControllerSN() || "未获取";
+    const aircraftSN = DJIBridge.getAircraftSN() || "未获取";
 
     this.elements.connectionInfo.innerHTML = `
       <div style="margin-bottom: calc(var(--space) * 0.3);">
@@ -97,9 +106,41 @@ export const UI = {
       </div>
       <div><strong>TCP 地址:</strong> ${creds.tcpUrl}</div>
       <div><strong>WebSocket 地址:</strong> ${creds.wsUrl}</div>
-      <div><strong>账号:</strong> ${accountText}</div>
-      <div><strong>密码:</strong> ${passwordText}</div>
+      <div style="margin-top: calc(var(--space) * 0.5); padding-top: calc(var(--space) * 0.5); border-top: 1px solid rgba(148, 163, 184, 0.2);">
+        <strong>遥控器SN:</strong> <span style="font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;">${rcSN}</span>
+      </div>
+      <div><strong>飞行器SN:</strong> <span style="font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;">${aircraftSN}</span></div>
     `;
+  },
+
+  /**
+   * Show connected state (called by ConnectionManager)
+   */
+  showConnected() {
+    this.updateConnectionInfo();
+  },
+
+  /**
+   * Show disconnected state (called by ConnectionManager)
+   */
+  showDisconnected() {
+    this.updateConnectionInfo();
+  },
+
+  /**
+   * Show connecting state (called by ConnectionManager)
+   */
+  showConnecting() {
+    this.updateConnectionInfo();
+  },
+
+  /**
+   * Enable login button (called after module loads)
+   */
+  enableLoginButton() {
+    if (this.elements.loginButton) {
+      this.elements.loginButton.disabled = false;
+    }
   },
 
   /**

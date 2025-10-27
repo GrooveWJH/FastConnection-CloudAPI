@@ -6,6 +6,7 @@ import { Logger } from './logger.js';
 import { AppState } from './state.js';
 import { MQTTTester } from './mqtt.js';
 import { DJIBridge } from './bridge.js';
+import { connectionManager } from './main.js';
 
 export const Handlers = {
   // Reference to UI module (will be set by UI module)
@@ -47,11 +48,18 @@ export const Handlers = {
         return;
       }
 
-      AppState.isConnecting = true;
-      DJIBridge.connectThing(creds.username, creds.password, "reg_callback");
+      // Call DJI Bridge connect
+      const result = DJIBridge.connectThing(creds.username, creds.password);
+
+      // If thingConnect returns success, directly set connected state
+      if (result.success) {
+        connectionManager.setConnected();
+        Logger.log("[登录] 连接成功", "success");
+      } else {
+        Logger.log("[登录] 连接失败", "error");
+      }
     } catch (error) {
       Logger.log(`[登录] 错误: ${error.message}`, "error");
-      AppState.isConnecting = false;
     }
   },
 
@@ -61,8 +69,6 @@ export const Handlers = {
   onLogout() {
     if (!DJIBridge.isAvailable()) {
       Logger.log("[登出] 未检测到 Cloud API 环境", "error");
-      AppState.isConnected = false;
-      AppState.isConnecting = false;
       if (this.ui) {
         this.ui.updateConnectionInfo();
       }
@@ -70,13 +76,8 @@ export const Handlers = {
     }
 
     try {
-      DJIBridge.disconnectThing();
-      AppState.isConnected = false;
-      AppState.isConnecting = false;
-
-      if (this.ui) {
-        this.ui.updateConnectionInfo();
-      }
+      // Use ConnectionManager to handle disconnection
+      connectionManager.disconnect();
       Logger.log("[登出] 已断开连接", "success");
     } catch (error) {
       Logger.log(`[登出] 错误: ${error.message}`, "error");
@@ -87,11 +88,11 @@ export const Handlers = {
    * Check status
    */
   onStatus() {
-    Logger.log(`[状态] MQTT连接: ${AppState.isConnected ? "已连接" : "未连接"}`, "info");
+    const isConnected = connectionManager.isConnected();
+    Logger.log(`[状态] MQTT连接: ${isConnected ? "已连接" : "未连接"}`, "info");
 
     if (!DJIBridge.isAvailable()) {
       Logger.log("[状态] 未检测到 Cloud API 环境", "error");
-      AppState.isConnected = false;
       if (this.ui) {
         this.ui.updateConnectionInfo();
         this.ui.checkModuleStatus();
@@ -104,7 +105,6 @@ export const Handlers = {
       Logger.log(`[状态] Thing状态: ${thingState}`, "info");
       Logger.log(`[状态] 许可证: ${window.djiBridge.platformIsVerified()}`, "info");
 
-      AppState.isConnected = thingState;
       if (this.ui) {
         this.ui.updateConnectionInfo();
         this.ui.checkModuleStatus();

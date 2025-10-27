@@ -6,6 +6,12 @@ import { Logger } from './logger.js';
 import { AppState } from './state.js';
 import { DJIBridge } from './bridge.js';
 import { UI } from './ui.js';
+import { DJIBridgeAdapter } from './djiBridgeAdapter.js';
+import { ConnectionManager } from './connectionManager.js';
+
+// Global instances - exported for use by other modules
+export let bridgeAdapter;
+export let connectionManager;
 
 /**
  * Preload DJI Bridge modules on page load
@@ -28,13 +34,25 @@ async function preloadModules() {
 
     const creds = AppState.getCredentials(window.APP_CONFIG || {});
 
+    // Load Thing module (use unified callback)
     const thingResult = DJIBridge.loadModule("thing", {
       host: creds.tcpUrl,
-      connectCallback: "reg_callback"
+      connectCallback: "reg_callback",
+      username: creds.username,
+      password: creds.password
     });
 
-    UI.updateModuleStatus("thing", thingResult.success, thingResult.success ? "已加载" : "加载失败");
+    // Subscribe to module load event via adapter
+    bridgeAdapter.onModuleLoad(() => {
+      UI.updateModuleStatus("thing", true, "已加载");
+      UI.enableLoginButton();
+    });
 
+    if (!thingResult.success) {
+      UI.updateModuleStatus("thing", false, "加载失败");
+    }
+
+    // Load Liveshare module
     const liveshareResult = DJIBridge.loadModule("liveshare", {
       videoPublishType: "video-on-demand",
       statusCallback: "liveshare_callback"
@@ -109,26 +127,6 @@ function initDefaults() {
 }
 
 /**
- * DJI Bridge callback - Thing connection status
- */
-function reg_callback() {
-  const stack = new Error().stack;
-  Logger.log(`[Thing回调] 被触发！`, "warn");
-  Logger.log(`[Thing回调] 调用栈: ${stack}`, "info");
-
-  // Only set connected if user initiated the connection
-  if (AppState.isConnecting) {
-    Logger.log(`[Thing回调] 连接成功`, "success");
-    AppState.isConnected = true;
-    AppState.isConnecting = false;
-    UI.updateConnectionInfo();
-    UI.checkModuleStatus();
-  } else {
-    Logger.log(`[Thing回调] 模块加载触发（非用户主动连接）`, "info");
-  }
-}
-
-/**
  * DJI Bridge callback - Liveshare status
  */
 function liveshare_callback(status) {
@@ -150,12 +148,24 @@ function liveshare_callback(status) {
 
 // Initialize application when page loads
 window.addEventListener("load", () => {
-  AppState.isConnected = false;
   Logger.init();
+
+  // Initialize DJI Bridge adapter
+  bridgeAdapter = new DJIBridgeAdapter();
+  bridgeAdapter.init();
+
+  // Initialize connection manager
+  connectionManager = new ConnectionManager(bridgeAdapter);
+
+  // Connect adapter and connection manager
+  bridgeAdapter.setConnectionManager(connectionManager);
+
+  // Initialize UI
   UI.init();
+
+  // Initialize default values and load modules
   initDefaults();
 });
 
-// Export callbacks to global scope (required by DJI Bridge)
-window.reg_callback = reg_callback;
+// Export callback to global scope (required by DJI Bridge for liveshare)
 window.liveshare_callback = liveshare_callback;
