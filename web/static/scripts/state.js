@@ -16,6 +16,9 @@ export const AppState = {
   // Connection state
   isConnected: false,
 
+  // Flag to track if user initiated connection
+  isConnecting: false,
+
   /**
    * Load state from localStorage
    */

@@ -23,14 +23,13 @@ export const DJIBridge = {
    */
   verifyLicense() {
     if (!this.isAvailable()) {
-      Logger.log("[DJI Bridge] 未检测到 DJI RC Cloud API 环境", "error");
+      Logger.log("[许可证] 未检测到 DJI RC Cloud API 环境", "error");
       return false;
     }
 
-    Logger.log("[DJI Bridge] 开始验证平台许可证", "info");
     window.djiBridge.platformVerifyLicense(APP_ID, APP_KEY, LICENSE);
     const verified = window.djiBridge.platformIsVerified();
-    Logger.log(`[DJI Bridge] 平台验证状态: ${verified}`, verified ? "success" : "error");
+    Logger.log(`[许可证] 验证${verified ? "成功" : "失败"}`, verified ? "success" : "error");
     return verified;
   },
 
@@ -43,19 +42,19 @@ export const DJIBridge = {
     }
 
     const result = window.djiBridge.platformLoadComponent(name, JSON.stringify(params));
+    Logger.log(`[模块加载] platformLoadComponent("${name}"): ${JSON.stringify(result)}`, "info");
 
     try {
       const resultObj = JSON.parse(result);
       if (resultObj.code === 0) {
-        Logger.log(`[模块加载] ${name} 模块加载成功`, "success");
+        Logger.log(`[模块加载] ${name} 加载成功`, "success");
         return { success: true, data: resultObj.data };
       } else {
-        Logger.log(`[模块加载] ${name} 模块加载失败: ${resultObj.message || '未知错误'}`, "error");
+        Logger.log(`[模块加载] ${name} 加载失败: ${resultObj.message || '未知错误'}`, "error");
         return { success: false, message: resultObj.message };
       }
     } catch (e) {
-      // Fallback if result is not JSON
-      Logger.log(`[模块加载] ${name} 模块加载结果: ${result}`, "success");
+      Logger.log(`[模块加载] ${name} 加载成功（非JSON）`, "success");
       return { success: true, raw: result };
     }
   },
@@ -73,14 +72,14 @@ export const DJIBridge = {
     try {
       const resultObj = JSON.parse(result);
       if (resultObj.code === 0) {
-        Logger.log(`[模块卸载] ${name} 模块卸载成功`, "success");
+        Logger.log(`[模块卸载] ${name} 卸载成功`, "success");
         return { success: true };
       } else {
-        Logger.log(`[模块卸载] ${name} 模块卸载失败: ${resultObj.message || '未知错误'}`, "error");
+        Logger.log(`[模块卸载] ${name} 卸载失败: ${resultObj.message || '未知错误'}`, "error");
         return { success: false, message: resultObj.message };
       }
     } catch (e) {
-      Logger.log(`[模块卸载] ${name} 模块卸载结果: ${result}`, "info");
+      Logger.log(`[模块卸载] ${name} 卸载成功（非JSON）`, "info");
       return { success: true, raw: result };
     }
   },
@@ -90,7 +89,18 @@ export const DJIBridge = {
    */
   isModuleLoaded(name) {
     if (!this.isAvailable()) return false;
+
     const loaded = window.djiBridge.platformIsComponentLoaded(name);
+
+    try {
+      const result = typeof loaded === 'string' ? JSON.parse(loaded) : loaded;
+      if (result && typeof result === 'object' && 'code' in result) {
+        return result.code === 0 && result.data === true;
+      }
+    } catch (e) {
+      // Fallback to old format
+    }
+
     return loaded === true || loaded === "true" || loaded === 1;
   },
 
@@ -114,18 +124,19 @@ export const DJIBridge = {
     }
 
     const result = window.djiBridge.thingConnect(username, password, callback);
+    Logger.log(`[Thing连接] thingConnect(): ${JSON.stringify(result)}`, "info");
 
     try {
       const resultObj = JSON.parse(result);
       if (resultObj.code === 0) {
-        Logger.log(`[Thing 连接] 连接成功`, "success");
+        Logger.log(`[Thing连接] 连接成功`, "success");
         return { success: true };
       } else {
-        Logger.log(`[Thing 连接] 连接失败: ${resultObj.message || '未知错误'}`, "error");
+        Logger.log(`[Thing连接] 连接失败: ${resultObj.message || '未知错误'}`, "error");
         return { success: false, message: resultObj.message };
       }
     } catch (e) {
-      Logger.log(`[Thing 连接] 连接结果: ${result}`, "info");
+      Logger.log(`[Thing连接] 连接成功（非JSON）`, "info");
       return { success: true, raw: result };
     }
   },
@@ -139,7 +150,7 @@ export const DJIBridge = {
       try {
         window.djiBridge.thingDisconnect();
       } catch (err) {
-        // ignore optional disconnect errors
+        // Ignore disconnect errors
       }
     }
   },
@@ -155,6 +166,7 @@ export const DJIBridge = {
       const config = window.djiBridge.liveshareGetConfig();
       return config ? JSON.parse(config) : null;
     } catch (e) {
+      Logger.log(`[Liveshare] 获取配置失败: ${e.message}`, "error");
       return null;
     }
   }

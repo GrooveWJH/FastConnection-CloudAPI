@@ -12,63 +12,37 @@ import { UI } from './ui.js';
  */
 async function preloadModules() {
   if (!DJIBridge.isAvailable()) {
-    Logger.log("[预加载] 未检测到 DJI RC Cloud API 环境，跳过模块预加载", "error");
-    // 立即更新模块状态为"环境未就绪"
+    Logger.log("[预加载] 未检测到 Cloud API 环境", "error");
     UI.updateModuleStatus("thing", false, "环境未就绪");
     UI.updateModuleStatus("liveshare", false, "环境未就绪");
     return;
   }
 
   try {
-    // 1. Verify license
     const verified = DJIBridge.verifyLicense();
     if (!verified) {
-      Logger.log("[预加载] 许可证验证失败，跳过模块加载", "error");
       UI.updateModuleStatus("thing", false, "许可证验证失败");
       UI.updateModuleStatus("liveshare", false, "许可证验证失败");
       return;
     }
 
-    // 2. Get credentials from storage
     const creds = AppState.getCredentials(window.APP_CONFIG || {});
-    const hasValidConfig = creds.username && creds.password;
-    if (!hasValidConfig) {
-      Logger.log("[预加载] 未找到有效的账号密码配置，使用默认值", "info");
-    }
 
-    // 3. Load Thing module (without connecting)
-    Logger.log("[预加载] 加载设备上云模块...", "info");
     const thingResult = DJIBridge.loadModule("thing", {
       host: creds.tcpUrl,
-      connectCallback: "reg_callback",
-      username: creds.username || "",
-      password: creds.password || "",
+      connectCallback: "reg_callback"
     });
 
-    // 立即更新Thing模块状态
-    if (thingResult.success) {
-      UI.updateModuleStatus("thing", true, "已加载，未连接");
-    } else {
-      UI.updateModuleStatus("thing", false, "加载失败");
-    }
+    UI.updateModuleStatus("thing", thingResult.success, thingResult.success ? "已加载" : "加载失败");
 
-    // 4. Load Liveshare module
-    Logger.log("[预加载] 加载直播模块...", "info");
     const liveshareResult = DJIBridge.loadModule("liveshare", {
       videoPublishType: "video-on-demand",
       statusCallback: "liveshare_callback"
     });
 
-    // 立即更新Liveshare模块状态
-    if (liveshareResult.success) {
-      UI.updateModuleStatus("liveshare", true, "已加载");
-    } else {
-      UI.updateModuleStatus("liveshare", false, "加载失败");
-    }
+    UI.updateModuleStatus("liveshare", liveshareResult.success, liveshareResult.success ? "已加载" : "加载失败");
 
-    // 5. 延迟再次检查确认状态（使用DJI Bridge API验证）
     setTimeout(() => {
-      Logger.log("[预加载] 验证模块加载状态", "info");
       UI.checkModuleStatus();
     }, 800);
 
@@ -98,7 +72,8 @@ function defaultHostDisplay() {
     const hostPart = parseHostFromUrl(raw);
     if (hostPart) return hostPart;
   }
-  return window.location.hostname || "127.0.0.1";
+  // 默认服务器地址
+  return "81.70.222.38";
 }
 
 /**
@@ -107,10 +82,8 @@ function defaultHostDisplay() {
 function initDefaults() {
   const appConfig = window.APP_CONFIG || {};
 
-  // Load state from storage
   AppState.loadFromStorage();
 
-  // Set defaults if not in storage
   const hostInput = document.getElementById("mqtt-host");
   const usernameInput = document.getElementById("mqtt-username");
   const passwordInput = document.getElementById("mqtt-password");
@@ -120,12 +93,10 @@ function initDefaults() {
   usernameInput.value = AppState.config.username || appConfig.mqttUsername || "admin";
   passwordInput.value = AppState.config.password || appConfig.mqttPassword || "public";
 
-  // Update AppState with input values
   AppState.config.host = hostInput.value;
   AppState.config.username = usernameInput.value;
   AppState.config.password = passwordInput.value;
 
-  // Set auth mode
   const defaultAnonymous = !usernameInput.value && !passwordInput.value;
   authModeInputs.forEach((input) => {
     input.checked = input.value === (defaultAnonymous ? "anonymous" : "credential");
@@ -134,10 +105,6 @@ function initDefaults() {
     }
   });
 
-  // Log initialization status
-  Logger.log(`[初始化] Cloud API 许可证状态: ${DJIBridge.isAvailable() ? window.djiBridge.platformIsVerified() : "未检测到 DJI RC Cloud API"}`, "info");
-
-  // Preload modules
   preloadModules();
 }
 
@@ -145,10 +112,20 @@ function initDefaults() {
  * DJI Bridge callback - Thing connection status
  */
 function reg_callback() {
-  Logger.log(`[回调] DJI Bridge 连接回调触发，参数: ${Array.from(arguments).join(", ")}`, "success");
-  AppState.isConnected = true;
-  UI.updateConnectionInfo();
-  UI.checkModuleStatus();
+  const stack = new Error().stack;
+  Logger.log(`[Thing回调] 被触发！`, "warn");
+  Logger.log(`[Thing回调] 调用栈: ${stack}`, "info");
+
+  // Only set connected if user initiated the connection
+  if (AppState.isConnecting) {
+    Logger.log(`[Thing回调] 连接成功`, "success");
+    AppState.isConnected = true;
+    AppState.isConnecting = false;
+    UI.updateConnectionInfo();
+    UI.checkModuleStatus();
+  } else {
+    Logger.log(`[Thing回调] 模块加载触发（非用户主动连接）`, "info");
+  }
 }
 
 /**
@@ -157,33 +134,25 @@ function reg_callback() {
 function liveshare_callback(status) {
   try {
     const statusObj = typeof status === "string" ? JSON.parse(status) : status;
-    Logger.log(`[直播回调] 直播状态变化: ${JSON.stringify(statusObj)}`, "info");
 
-    // Update liveshare module status
     if (statusObj && statusObj.status !== undefined) {
       const statusNames = {0: "未连接", 1: "已连接服务器", 2: "正在直播"};
       const statusText = statusNames[statusObj.status] || "未知状态";
       const isActive = statusObj.status >= 1;
 
+      Logger.log(`[Liveshare回调] ${statusText}`, "info");
       UI.updateModuleStatus("liveshare", isActive, statusText);
     }
   } catch (error) {
-    Logger.log(`[直播回调] 解析状态出错: ${error.message}`, "error");
+    Logger.log(`[Liveshare回调] 解析失败: ${error.message}`, "error");
   }
 }
 
 // Initialize application when page loads
 window.addEventListener("load", () => {
-  // 1. 首先确保连接状态为false
   AppState.isConnected = false;
-
-  // 2. 初始化日志系统
   Logger.init();
-
-  // 3. 初始化UI（会调用updateConnectionInfo，此时isConnected已经是false）
   UI.init();
-
-  // 4. 加载默认配置并预加载模块
   initDefaults();
 });
 

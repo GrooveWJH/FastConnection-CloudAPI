@@ -44,3 +44,29 @@
   background: #ef4444;
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
 }
+
+/* Clear Cache Button */
+.clear-cache-button {
+  width: 100%;
+  margin-top: calc(var(--space) * 0.8);
+  padding: calc(var(--space) * 0.5);
+  font-size: calc(var(--font-base) * 0.9);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border-radius: calc(var(--radius) - 6px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-cache-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.clear-cache-button:active {
+  transform: translateY(0);
+}
+
