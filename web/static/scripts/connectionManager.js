@@ -124,13 +124,10 @@ export class ConnectionManager {
    */
   _setState(newState) {
     const oldState = this.state;
-
     if (oldState === newState) {
       return;
     }
-
     this.state = newState;
-
     Logger.log(
       `[连接状态] ${StateNames[oldState]} → ${StateNames[newState]}`,
       newState === ConnectionState.CONNECTED ? "success" : "info"

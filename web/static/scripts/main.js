@@ -8,6 +8,7 @@ import { DJIBridge } from './bridge.js';
 import { UI } from './ui.js';
 import { DJIBridgeAdapter } from './djiBridgeAdapter.js';
 import { ConnectionManager } from './connectionManager.js';
+import { Liveshare } from './liveshare.js';
 
 // Global instances - exported for use by other modules
 export let bridgeAdapter;
@@ -128,22 +129,11 @@ function initDefaults() {
 
 /**
  * DJI Bridge callback - Liveshare status
+ * Note: This callback is registered with DJI Bridge, but we handle status in Liveshare module
  */
 function liveshare_callback(status) {
-  try {
-    const statusObj = typeof status === "string" ? JSON.parse(status) : status;
-
-    if (statusObj && statusObj.status !== undefined) {
-      const statusNames = {0: "未连接", 1: "已连接服务器", 2: "正在直播"};
-      const statusText = statusNames[statusObj.status] || "未知状态";
-      const isActive = statusObj.status >= 1;
-
-      Logger.log(`[Liveshare回调] ${statusText}`, "info");
-      UI.updateModuleStatus("liveshare", isActive, statusText);
-    }
-  } catch (error) {
-    Logger.log(`[Liveshare回调] 解析失败: ${error.message}`, "error");
-  }
+  // Callback is handled by Liveshare module, just keep this for DJI Bridge registration
+  // Do not log here to avoid spam
 }
 
 // Initialize application when page loads
@@ -165,6 +155,11 @@ window.addEventListener("load", () => {
 
   // Initialize default values and load modules
   initDefaults();
+
+  // Initialize Liveshare module after modules are loaded
+  setTimeout(() => {
+    Liveshare.init();
+  }, 1000);
 });
 
 // Export callback to global scope (required by DJI Bridge for liveshare)
