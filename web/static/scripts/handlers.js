@@ -118,7 +118,15 @@ export const Handlers = {
    * Clear cache and reload
    */
   onClearCache() {
-    Logger.log("[缓存] 正在清除浏览器缓存...", "info");
+    // Show confirmation dialog
+    const confirmed = confirm('确定要清除页面缓存并刷新吗？\n\n这将清除所有本地存储数据并重新加载页面。');
+
+    if (!confirmed) {
+      Logger.log('[缓存] 操作已取消', 'info');
+      return;
+    }
+
+    Logger.log('[缓存] 正在清除浏览器缓存...', 'info');
 
     try {
       if ('caches' in window) {
@@ -130,13 +138,13 @@ export const Handlers = {
       localStorage.clear();
       sessionStorage.clear();
 
-      Logger.log("[缓存] 缓存已清除，即将刷新页面", "success");
+      Logger.log('[缓存] 缓存已清除，即将刷新页面', 'success');
 
       setTimeout(() => {
         window.location.reload(true);
       }, 500);
     } catch (error) {
-      Logger.log(`[缓存] 清除失败: ${error.message}`, "error");
+      Logger.log(`[缓存] 清除失败: ${error.message}`, 'error');
     }
   }
 };

@@ -113,9 +113,22 @@ button {
   border-radius: calc(var(--radius) - 4px);
   border: none;
   font-size: calc(var(--font-base) * 1.35);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 #login-button {
