@@ -1,6 +1,7 @@
 import http.server
 import json
 import os
+import platform
 import socketserver
 from pathlib import Path
 from typing import Dict
@@ -35,6 +36,24 @@ DEFAULTS = {
 
 ENV_FILE_ORDER = (ENV_DIR / ".env", ENV_DIR / ".env.example")
 _ENV_CACHE: Dict[Path, Dict[str, str]] = {}
+
+
+def enable_windows_ansi_support() -> None:
+    """Enable ANSI escape codes in the Windows console if possible."""
+    if os.name != "nt":
+        return
+
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+        mode = ctypes.c_uint()
+        if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(handle, mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    except Exception:
+        # 安静地忽略失败，保持兼容性
+        pass
 
 
 def parse_env_file(path: Path) -> Dict[str, str]:
@@ -80,6 +99,7 @@ def generate_config() -> None:
         "mqttWsPath": resolve_setting("MQTT_WS_PATH"),
     }
 
+    CONFIG_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_OUTPUT.write_text(
         f"window.APP_CONFIG = {json.dumps(config_payload, ensure_ascii=False)};\n",
         encoding="utf-8",
@@ -95,7 +115,8 @@ def generate_config() -> None:
     print(f"\033[1;33mMQTT 用户名:\033[0m            {config_payload['mqttUsername']}")
     print(f"\033[1;33mMQTT 密码:\033[0m              {'*' * min(len(config_payload['mqttPassword']), 8)}")
     print(f"\033[1;33m配置文件:\033[0m               {CONFIG_OUTPUT}")
-    print(f"\033[1;33m系统架构:\033[0m               {os.uname().sysname} {os.uname().machine}")
+    system_info = platform.uname()
+    print(f"\033[1;33m系统架构:\033[0m               {system_info.system} {system_info.machine}")
     print("\033[1;36m" + "=" * 70 + "\033[0m")
     print("\033[1;32m✅ 配置已自动生成，Web 服务即将启动...\033[0m")
     print("\033[1;36m" + "=" * 70 + "\033[0m\n")
@@ -142,6 +163,7 @@ def serve_static() -> None:
 
 
 def main() -> None:
+    enable_windows_ansi_support()
     generate_config()
     serve_static()
 
