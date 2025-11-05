@@ -20,7 +20,9 @@ export const Liveshare = {
     isOpen: false,
     currentUrl: null,
     currentFps: 0,
-    currentBitrate: 0
+    currentBitrate: 0,
+    lastDisplayedFps: -1,      // Last displayed FPS value
+    lastDisplayedBitrate: -1   // Last displayed bitrate value
   },
 
   /**
@@ -45,7 +47,7 @@ export const Liveshare = {
 
       // Start status monitoring
       this.startStatusPolling();
-      Logger.log('[直播模块] 状态监控已启动 (2s)', 'info');
+      Logger.log('[直播模块] 状态监控已启动 (4s)', 'info');
     } else {
       Logger.log('[直播模块] 模块未加载', 'error');
     }
@@ -66,10 +68,7 @@ export const Liveshare = {
       bitrateDisplay: document.getElementById('bitrate-display')
     };
 
-    // Debug: Check if elements are found
-    Logger.log(`[直播模块] 元素检查:`, 'info');
-    Logger.log(`  - showLivestreamButton: ${this.elements.showLivestreamButton ? '已找到' : '未找到'}`, 'info');
-    Logger.log(`  - livestreamContainer: ${this.elements.livestreamContainer ? '已找到' : '未找到'}`, 'info');
+    // Elements cached successfully
 
     // Bind close button event
     if (this.elements.closeLivestreamButton) {
@@ -79,9 +78,6 @@ export const Liveshare = {
     // Bind show button event
     if (this.elements.showLivestreamButton) {
       this.elements.showLivestreamButton.addEventListener('click', () => this.openLivestream());
-      Logger.log('[直播模块] "显示直播画面"按钮事件已绑定', 'info');
-    } else {
-      Logger.log('[直播模块] ERROR: "显示直播画面"按钮未找到，无法绑定事件', 'error');
     }
   },
 
@@ -187,7 +183,7 @@ export const Liveshare = {
   },
 
   /**
-   * Start status polling (every 2 seconds)
+   * Start status polling (every 4 seconds to reduce resource load)
    */
   startStatusPolling() {
     if (this.statusPollingInterval) {
@@ -196,7 +192,7 @@ export const Liveshare = {
 
     this.statusPollingInterval = setInterval(() => {
       this.checkStatus();
-    }, 2000);
+    }, 4000);
   },
 
   /**
@@ -213,58 +209,69 @@ export const Liveshare = {
    * Check livestream status
    */
   checkStatus() {
-    const statusResult = this.getLiveshareStatus();
+    try {
+      const statusResult = this.getLiveshareStatus();
 
-    if (!statusResult || !statusResult.data) {
-      return;
+      if (!statusResult || !statusResult.data) {
+        return;
+      }
+
+      // Parse data if it's a string
+      const statusData = typeof statusResult.data === 'string'
+        ? JSON.parse(statusResult.data)
+        : statusResult.data;
+
+      const currentStatus = statusData.status; // 0: 未连接, 1: 已连接服务器, 2: 正在直播
+
+      // Get config once to avoid redundant API calls
+      const config = this.getLiveshareConfig();
+
+      // Update FPS and bitrate
+      if (statusData.fps !== undefined) {
+        this.playerState.currentFps = statusData.fps;
+      }
+      if (statusData.videoBitRate !== undefined) {
+        this.playerState.currentBitrate = statusData.videoBitRate;
+      }
+
+      // Update stats display if player is open
+      if (this.playerState.isOpen) {
+        this.updateStatsDisplay();
+      }
+
+      // Initialize lastStatus on first check (without logging)
+      if (this.state.lastStatus === null) {
+        this.state.lastStatus = currentStatus;
+      }
+
+      // Detect status change (only if status actually changed)
+      if (this.state.lastStatus !== currentStatus) {
+        this.onStatusChange(currentStatus, statusData, config);
+        this.state.lastStatus = currentStatus;
+      }
+
+      // Update UI (pass config to avoid redundant call)
+      this.updateUI(currentStatus, config);
+    } catch (error) {
+      // Silently catch errors to prevent polling from breaking
+      // Only log if it's a critical error
+      if (error.message && !error.message.includes('JSON')) {
+        Logger.log(`[直播模块] 状态检查错误: ${error.message}`, 'error');
+      }
     }
-
-    // Parse data if it's a string
-    const statusData = typeof statusResult.data === 'string'
-      ? JSON.parse(statusResult.data)
-      : statusResult.data;
-
-    const currentStatus = statusData.status; // 0: 未连接, 1: 已连接服务器, 2: 正在直播
-
-    // Update FPS and bitrate
-    if (statusData.fps !== undefined) {
-      this.playerState.currentFps = statusData.fps;
-    }
-    if (statusData.videoBitRate !== undefined) {
-      this.playerState.currentBitrate = statusData.videoBitRate;
-    }
-
-    // Update stats display if player is open
-    if (this.playerState.isOpen) {
-      this.updateStatsDisplay();
-    }
-
-    // Initialize lastStatus on first check (without logging)
-    if (this.state.lastStatus === null) {
-      this.state.lastStatus = currentStatus;
-    }
-
-    // Detect status change (only if status actually changed)
-    if (this.state.lastStatus !== currentStatus) {
-      this.onStatusChange(currentStatus, statusData);
-      this.state.lastStatus = currentStatus;
-    }
-
-    // Update UI
-    this.updateUI(currentStatus);
   },
 
   /**
    * Handle status change
    */
-  onStatusChange(newStatus, statusData) {
+  onStatusChange(newStatus, statusData, config) {
     if (newStatus === 2) {
       // 正在直播
       Logger.log(`[直播] 已开启`, 'success');
       this.state.isStreaming = true;
 
-      // Get and log RTMP URL
-      this.logStreamingInfo(statusData);
+      // Get and log RTMP URL (use cached config)
+      this.logStreamingInfo(statusData, config);
     } else if (this.state.isStreaming && newStatus < 2) {
       // 直播已关闭
       Logger.log(`[直播] 已关闭`, 'warning');
@@ -275,10 +282,8 @@ export const Liveshare = {
   /**
    * Log streaming information including RTMP URL
    */
-  logStreamingInfo(statusData) {
-    // Try to get config to extract RTMP URL
-    const config = this.getLiveshareConfig();
-
+  logStreamingInfo(statusData, config) {
+    // Use cached config to avoid redundant API call
     if (config && config.data) {
       try {
         const configData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
@@ -298,20 +303,19 @@ export const Liveshare = {
       }
     }
 
-    // Log streaming stats
-    if (statusData.fps > 0) Logger.log(`[直播] 帧率 ${statusData.fps} fps`, 'info');
-    if (statusData.videoBitRate > 0) Logger.log(`[直播] 码率 ${(statusData.videoBitRate / 1000).toFixed(1)} kbps`, 'info');
+    // Stats are now displayed in UI only, not logged
   },
 
   /**
    * Get RTMP URL from config
    */
-  getRtmpUrl() {
+  getRtmpUrl(config = null) {
     try {
-      const config = this.getLiveshareConfig();
-      if (!config || !config.data) return null;
+      // Use provided config or fetch new one
+      const configToUse = config || this.getLiveshareConfig();
+      if (!configToUse || !configToUse.data) return null;
 
-      const configData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+      const configData = typeof configToUse.data === 'string' ? JSON.parse(configToUse.data) : configToUse.data;
 
       if (configData.type === 2 && configData.params) {
         const params = typeof configData.params === 'string'
@@ -394,19 +398,22 @@ export const Liveshare = {
   },
 
   /**
-   * Update stats display (FPS and bitrate)
+   * Update stats display (FPS and bitrate) - only when values change
    */
   updateStatsDisplay() {
-    if (this.elements.fpsDisplay) {
+    // Only update DOM if values have changed
+    if (this.elements.fpsDisplay && this.playerState.currentFps !== this.playerState.lastDisplayedFps) {
       const fps = this.playerState.currentFps > 0 ? `${this.playerState.currentFps} fps` : '-- fps';
       this.elements.fpsDisplay.textContent = fps;
+      this.playerState.lastDisplayedFps = this.playerState.currentFps;
     }
 
-    if (this.elements.bitrateDisplay) {
+    if (this.elements.bitrateDisplay && this.playerState.currentBitrate !== this.playerState.lastDisplayedBitrate) {
       const bitrate = this.playerState.currentBitrate > 0
         ? `${(this.playerState.currentBitrate / 1000).toFixed(1)} kbps`
         : '-- kbps';
       this.elements.bitrateDisplay.textContent = bitrate;
+      this.playerState.lastDisplayedBitrate = this.playerState.currentBitrate;
     }
   },
 
@@ -436,7 +443,7 @@ export const Liveshare = {
   /**
    * Update UI state
    */
-  updateUI(status) {
+  updateUI(status, config = null) {
     if (!this.elements.statusIndicator || !this.elements.infoElement) {
       return;
     }
@@ -448,8 +455,8 @@ export const Liveshare = {
       // Streaming - blinking green
       this.elements.statusIndicator.classList.add('streaming');
 
-      // Get RTMP URL
-      const rtmpUrl = this.getRtmpUrl();
+      // Get RTMP URL (use cached config)
+      const rtmpUrl = this.getRtmpUrl(config);
 
       if (rtmpUrl) {
         this.elements.infoElement.innerHTML = `
@@ -463,10 +470,7 @@ export const Liveshare = {
 
       // Show "显示直播画面" button
       if (this.elements.showLivestreamButton) {
-        Logger.log('[直播模块] 显示"显示直播画面"按钮', 'info');
         this.elements.showLivestreamButton.style.display = 'inline-flex';
-      } else {
-        Logger.log('[直播模块] ERROR: showLivestreamButton 元素未找到', 'error');
       }
     } else {
       // Not streaming - static green (module loaded)

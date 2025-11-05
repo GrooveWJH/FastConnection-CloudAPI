@@ -27,8 +27,8 @@ LAN_IP = get_best_local_ip()
 DEFAULTS = {
     "MQTT_TCP_URL": f"tcp://{LAN_IP}:1883",
     "MQTT_WS_URL": "",
-    "MQTT_USERNAME": "admin",
-    "MQTT_PASSWORD": "public",
+    "MQTT_USERNAME": "dji",
+    "MQTT_PASSWORD": "lab605605",
     "MQTT_WS_PORT": "",
     "MQTT_WS_PATH": "/mqtt",
     "WEB_BIND_PORT": "3100",
