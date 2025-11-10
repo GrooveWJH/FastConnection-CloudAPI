@@ -20,9 +20,11 @@ export const Liveshare = {
     isOpen: false,
     currentUrl: null,
     currentFps: 0,
-    currentBitrate: 0,
-    lastDisplayedFps: -1,      // Last displayed FPS value
-    lastDisplayedBitrate: -1   // Last displayed bitrate value
+    currentWidth: 0,                // Video width
+    currentHeight: 0,               // Video height
+    lastDisplayedFps: -1,           // Last displayed FPS value
+    lastDisplayedWidth: -1,         // Last displayed width
+    lastDisplayedHeight: -1         // Last displayed height
   },
 
   /**
@@ -65,7 +67,7 @@ export const Liveshare = {
       closeLivestreamButton: document.getElementById('close-livestream-button'),
       showLivestreamButton: document.getElementById('show-livestream-button'),
       fpsDisplay: document.getElementById('fps-display'),
-      bitrateDisplay: document.getElementById('bitrate-display')
+      resolutionDisplay: document.getElementById('resolution-display')
     };
 
     // Elements cached successfully
@@ -226,12 +228,18 @@ export const Liveshare = {
       // Get config once to avoid redundant API calls
       const config = this.getLiveshareConfig();
 
-      // Update FPS and bitrate
+      // Update FPS
       if (statusData.fps !== undefined) {
         this.playerState.currentFps = statusData.fps;
       }
-      if (statusData.videoBitRate !== undefined) {
-        this.playerState.currentBitrate = statusData.videoBitRate;
+
+      // Update resolution (try multiple possible field names)
+      if (statusData.videoWidth !== undefined && statusData.videoHeight !== undefined) {
+        this.playerState.currentWidth = statusData.videoWidth;
+        this.playerState.currentHeight = statusData.videoHeight;
+      } else if (statusData.width !== undefined && statusData.height !== undefined) {
+        this.playerState.currentWidth = statusData.width;
+        this.playerState.currentHeight = statusData.height;
       }
 
       // Update stats display if player is open
@@ -332,7 +340,7 @@ export const Liveshare = {
 
   /**
    * Convert RTMP URL to WebRTC HTTP URL
-   * rtmp://192.168.31.73:1935/live/drone001 -> http://192.168.31.73:8889/live/drone001
+   * rtmp://192.168.31.73:1935/live/drone001 -> http://192.168.31.73:8888/live/drone001
    */
   convertRtmpToHttp(rtmpUrl) {
     if (!rtmpUrl) return null;
@@ -342,8 +350,8 @@ export const Liveshare = {
       const httpUrl = rtmpUrl.replace('rtmp://', 'http://');
       const url = new URL(httpUrl);
 
-      // Change port from 1935 to 8889
-      url.port = '8889';
+      // Change port from 1935 to 8888
+      url.port = '8888';
 
       return url.toString();
     } catch (e) {
@@ -398,7 +406,7 @@ export const Liveshare = {
   },
 
   /**
-   * Update stats display (FPS and bitrate) - only when values change
+   * Update stats display (FPS and resolution) - only when values change
    */
   updateStatsDisplay() {
     // Only update DOM if values have changed
@@ -408,12 +416,15 @@ export const Liveshare = {
       this.playerState.lastDisplayedFps = this.playerState.currentFps;
     }
 
-    if (this.elements.bitrateDisplay && this.playerState.currentBitrate !== this.playerState.lastDisplayedBitrate) {
-      const bitrate = this.playerState.currentBitrate > 0
-        ? `${(this.playerState.currentBitrate / 1000).toFixed(1)} kbps`
-        : '-- kbps';
-      this.elements.bitrateDisplay.textContent = bitrate;
-      this.playerState.lastDisplayedBitrate = this.playerState.currentBitrate;
+    if (this.elements.resolutionDisplay &&
+        (this.playerState.currentWidth !== this.playerState.lastDisplayedWidth ||
+         this.playerState.currentHeight !== this.playerState.lastDisplayedHeight)) {
+      const resolution = (this.playerState.currentWidth > 0 && this.playerState.currentHeight > 0)
+        ? `${this.playerState.currentWidth}x${this.playerState.currentHeight}`
+        : '--';
+      this.elements.resolutionDisplay.textContent = resolution;
+      this.playerState.lastDisplayedWidth = this.playerState.currentWidth;
+      this.playerState.lastDisplayedHeight = this.playerState.currentHeight;
     }
   },
 
