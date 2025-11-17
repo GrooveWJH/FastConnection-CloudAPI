@@ -27,7 +27,10 @@
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 400;
-  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+  /* Subset of only the icons we use; falls back to full set if missing */
+  src:
+    url('/fonts/material-symbols-outlined-subset.woff2') format('woff2'),
+    url('/fonts/material-symbols-outlined.woff2') format('woff2');
   font-display: swap;
 }
 
