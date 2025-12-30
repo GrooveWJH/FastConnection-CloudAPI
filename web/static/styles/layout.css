@@ -34,7 +34,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: calc(var(--space) * 0.6);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .panel-logs {

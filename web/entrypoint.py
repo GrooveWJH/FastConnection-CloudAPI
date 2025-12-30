@@ -4,7 +4,6 @@ import os
 import platform
 import socketserver
 from pathlib import Path
-from typing import Dict
 
 # 导入增强版的 IP 检测功能
 from get_local_ip import get_best_local_ip
@@ -12,30 +11,19 @@ from get_local_ip import get_best_local_ip
 # 动态检测路径：优先使用 Docker 路径，否则使用当前目录
 if Path("/app/static").exists():
     STATIC_DIR = Path("/app/static")
-    ENV_DIR = Path("/app/env")
+    DEFAULTS_PATH = Path("/app/web/config_defaults.json")
 else:
     # 本地开发环境：使用脚本所在目录
     SCRIPT_DIR = Path(__file__).parent
     STATIC_DIR = SCRIPT_DIR / "static"
-    ENV_DIR = SCRIPT_DIR.parent / "env"
+    DEFAULTS_PATH = SCRIPT_DIR / "config_defaults.json"
 
 CONFIG_OUTPUT = STATIC_DIR / "config.js"
 
 # 使用增强版的 IP 检测
 LAN_IP = get_best_local_ip()
 
-DEFAULTS = {
-    "MQTT_TCP_URL": f"tcp://{LAN_IP}:1883",
-    "MQTT_WS_URL": "",
-    "MQTT_USERNAME": "dji",
-    "MQTT_PASSWORD": "lab605605",
-    "MQTT_WS_PORT": "",
-    "MQTT_WS_PATH": "/mqtt",
-    "WEB_BIND_PORT": "3100",
-}
-
-ENV_FILE_ORDER = (ENV_DIR / ".env", ENV_DIR / ".env.example")
-_ENV_CACHE: Dict[Path, Dict[str, str]] = {}
+DEFAULTS = {}
 
 
 def enable_windows_ansi_support() -> None:
@@ -50,53 +38,52 @@ def enable_windows_ansi_support() -> None:
         handle = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
         mode = ctypes.c_uint()
         if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
-            kernel32.SetConsoleMode(handle, mode.value | 0x0004)  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+            # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+            kernel32.SetConsoleMode(handle, mode.value | 0x0004)
     except Exception:
         # 安静地忽略失败，保持兼容性
         pass
 
 
-def parse_env_file(path: Path) -> Dict[str, str]:
-    """Parse simple KEY=VALUE lines from a dotenv-style file."""
-    variables: Dict[str, str] = {}
-    if not path.exists():
-        return variables
+def load_defaults() -> None:
+    """Load config defaults from JSON file."""
+    print(f"\033[1;33m[配置生成] 配置文件路径:\033[0m {DEFAULTS_PATH}")
+    print(f"\033[1;33m[配置生成] 当前工作目录:\033[0m {Path.cwd()}")
+    print(
+        f"\033[1;33m[配置生成] 目录检查:\033[0m /app -> {Path('/app').exists()}, /app/web -> {Path('/app/web').exists()}")
+    try:
+        print(
+            f"\033[1;33m[配置生成] /app 目录内容:\033[0m {sorted(p.name for p in Path('/app').iterdir())}")
+    except Exception as exc:
+        print(f"\033[1;33m[配置生成] 无法读取 /app 目录:\033[0m {exc}")
+    try:
+        print(
+            f"\033[1;33m[配置生成] /app/web 目录内容:\033[0m {sorted(p.name for p in Path('/app/web').iterdir())}")
+    except Exception as exc:
+        print(f"\033[1;33m[配置生成] 无法读取 /app/web 目录:\033[0m {exc}")
 
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        variables[key.strip()] = value.strip().strip('"').strip("'")
-    return variables
-
-
-def resolve_setting(key: str) -> str:
-    """Resolve a single config value: env var -> .env -> .env.example -> default."""
-    if (value := os.getenv(key)) not in (None, ""):
-        return value
-
-    for env_path in ENV_FILE_ORDER:
-        env_values = _ENV_CACHE.setdefault(env_path, parse_env_file(env_path))
-        if key in env_values and env_values[key] != "":
-            return env_values[key]
-
-    return DEFAULTS[key]
+    if not DEFAULTS_PATH.exists():
+        raise FileNotFoundError(f"Missing defaults file: {DEFAULTS_PATH}")
+    DEFAULTS.update(json.loads(DEFAULTS_PATH.read_text(encoding="utf-8")))
 
 
 def generate_config() -> None:
     """Generate config.js directly from resolved settings."""
     # 获取解析后的配置
-    mqtt_tcp_url = resolve_setting("MQTT_TCP_URL")
-    mqtt_ws_url = resolve_setting("MQTT_WS_URL")
+    mqtt_tcp_url = DEFAULTS["MQTT_TCP_URL"].format(lan_ip=LAN_IP)
+    mqtt_ws_url = DEFAULTS["MQTT_WS_URL"]
 
     config_payload = {
         "mqttTcpUrl": mqtt_tcp_url,
         "mqttWsUrl": mqtt_ws_url,
-        "mqttUsername": resolve_setting("MQTT_USERNAME"),
-        "mqttPassword": resolve_setting("MQTT_PASSWORD"),
-        "mqttWsPort": resolve_setting("MQTT_WS_PORT"),
-        "mqttWsPath": resolve_setting("MQTT_WS_PATH"),
+        "mqttUsername": DEFAULTS["MQTT_USERNAME"],
+        "mqttPassword": DEFAULTS["MQTT_PASSWORD"],
+        "mqttWsPort": DEFAULTS["MQTT_WS_PORT"],
+        "mqttWsPath": DEFAULTS["MQTT_WS_PATH"],
+        "apiToken": DEFAULTS["API_TOKEN"],
+        "platformName": DEFAULTS["PLATFORM_NAME"],
+        "workspaceName": DEFAULTS["WORKSPACE_NAME"],
+        "workspaceDesc": DEFAULTS["WORKSPACE_DESC"],
     }
 
     CONFIG_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -112,11 +99,14 @@ def generate_config() -> None:
     print(f"\033[1;33m检测到的局域网 IP:\033[0m     {LAN_IP}")
     print(f"\033[1;33mMQTT TCP 地址:\033[0m          {mqtt_tcp_url}")
     print(f"\033[1;33mMQTT WebSocket 地址:\033[0m   {mqtt_ws_url or '(自动生成)'}")
-    print(f"\033[1;33mMQTT 用户名:\033[0m            {config_payload['mqttUsername']}")
-    print(f"\033[1;33mMQTT 密码:\033[0m              {'*' * min(len(config_payload['mqttPassword']), 8)}")
+    print(
+        f"\033[1;33mMQTT 用户名:\033[0m            {config_payload['mqttUsername']}")
+    print(
+        f"\033[1;33mMQTT 密码:\033[0m              {'*' * min(len(config_payload['mqttPassword']), 8)}")
     print(f"\033[1;33m配置文件:\033[0m               {CONFIG_OUTPUT}")
     system_info = platform.uname()
-    print(f"\033[1;33m系统架构:\033[0m               {system_info.system} {system_info.machine}")
+    print(
+        f"\033[1;33m系统架构:\033[0m               {system_info.system} {system_info.machine}")
     print("\033[1;36m" + "=" * 70 + "\033[0m")
     print("\033[1;32m✅ 配置已自动生成，Web 服务即将启动...\033[0m")
     print("\033[1;36m" + "=" * 70 + "\033[0m\n")
@@ -146,7 +136,7 @@ def serve_static() -> None:
             print(f"\033[0;36m[Web 服务]\033[0m {format % args}")
 
     try:
-        port = int(resolve_setting("WEB_BIND_PORT"))
+        port = int(DEFAULTS["WEB_BIND_PORT"])
     except ValueError:
         port = 3100
 
@@ -164,6 +154,7 @@ def serve_static() -> None:
 
 def main() -> None:
     enable_windows_ansi_support()
+    load_defaults()
     generate_config()
     serve_static()
 

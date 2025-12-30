@@ -487,7 +487,7 @@ export const Liveshare = {
       // Not streaming - static green (module loaded)
       this.elements.statusIndicator.classList.add('active');
       this.elements.infoElement.textContent = '已加载';
-      this.elements.infoElement.style.color = '#94a3b8';
+      this.elements.infoElement.style.color = '#86efac';
 
       // Hide "显示直播画面" button
       if (this.elements.showLivestreamButton) {

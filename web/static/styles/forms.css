@@ -12,6 +12,18 @@
   font-size: var(--font-large);
 }
 
+.endpoint-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 0.6);
+}
+
+@media (max-width: 900px) {
+  .endpoint-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .endpoint-settings label {
   display: flex;
   flex-direction: column;
@@ -157,7 +169,10 @@ button:active {
   font-size: var(--font-small);
   line-height: 1.5;
   color: var(--text-secondary);
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 32vh;
+  overflow-y: auto;
 }
 
 /* Status Indicators */

@@ -12,6 +12,46 @@
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
 }
 
+.panel-logs .panel-header {
+  margin-bottom: calc(var(--space) * 0.6);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 0.35);
+}
+
+.panel-logs .panel-header h2 {
+  margin: 0;
+}
+
+.panel-logs .log-copy-button {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.55em;
+  min-height: 0;
+  font-size: calc(var(--font-small) * 0.9);
+  font-weight: 500;
+  border-radius: calc(var(--radius) - 6px);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.12);
+  color: #4b5563;
+  line-height: 1.1;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.panel-logs .panel-header h2,
+.panel-logs .log-copy-button {
+  height: calc(var(--font-large) * 1.25);
+}
+
+.panel-logs .log-copy-button.is-copied {
+  border-color: rgba(34, 197, 94, 0.7);
+  background: rgba(34, 197, 94, 0.15);
+  color: #166534;
+}
+
 /* Log entry styles */
 .log-item {
   margin: 0.2vmin 0;
@@ -29,6 +69,10 @@
 
 .log-info {
   color: #38bdf8;
+}
+
+.log-media {
+  color: #c084fc;
 }
 
 /* Modules console container */

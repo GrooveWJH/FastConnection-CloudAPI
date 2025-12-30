@@ -8,6 +8,37 @@ import { Logger } from './logger.js';
 const APP_ID = 171440;
 const LICENSE = "krC5HsEFLzVC8xkKM38JCcSxNEQvsQ/7IoiHEJRaulGiPQildia+n/+bF+SO21pk1JTS8CfaNS+fn8qt+17i3Y7uoqtBOOsdtLUQhqPMb0DVea0dmZ7oZhdP2CuQrQSn1bobS3pQ+MW2eEOq0XCcCkpo+HxAC1r5/33yEDxc6NE=";
 const APP_KEY = "b57ab1ee70f0a78e1797c592742e7d4";
+function bytesToUuid(bytes) {
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+function fallbackHashBytes(input) {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const bytes = new Uint8Array(32);
+  let x = hash >>> 0;
+  for (let i = 0; i < bytes.length; i += 1) {
+    // Xorshift32 to expand into 32 bytes
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    bytes[i] = x & 0xff;
+  }
+  return bytes;
+}
+
+async function sha256Bytes(input) {
+  if (window.crypto && window.crypto.subtle) {
+    const data = new TextEncoder().encode(input);
+    const digest = await window.crypto.subtle.digest("SHA-256", data);
+    return new Uint8Array(digest);
+  }
+  return fallbackHashBytes(input);
+}
 
 export const DJIBridge = {
   /**
@@ -30,6 +61,71 @@ export const DJIBridge = {
     const verified = window.djiBridge.platformIsVerified();
     Logger.log(`[许可证] 验证${verified ? "成功" : "失败"}`, verified ? "success" : "error");
     return verified;
+  },
+
+  getPlatformInfo() {
+    const appConfig = window.APP_CONFIG || {};
+    return {
+      platformName: appConfig.platformName || "DJI上云控制-云纵科技",
+      workspaceName: appConfig.workspaceName || "上云API界面",
+      desc: appConfig.workspaceDesc || "云纵科技"
+    };
+  },
+
+  async generateWorkspaceIdFromSN(sn) {
+    const normalized = String(sn || "").trim();
+    const bytes = await sha256Bytes(normalized);
+    const uuidBytes = bytes.slice(0, 16);
+    uuidBytes[6] = (uuidBytes[6] & 0x0f) | 0x50;
+    uuidBytes[8] = (uuidBytes[8] & 0x3f) | 0x80;
+    return bytesToUuid(uuidBytes);
+  },
+
+  setWorkspaceInfo(workspaceId, info = this.getPlatformInfo()) {
+    if (!this.isAvailable()) {
+      Logger.log("[工作空间] 未检测到 DJI RC Cloud API 环境", "error");
+      return { success: false, message: "DJI Bridge not available" };
+    }
+
+    let setIdResult = null;
+    let setInfoResult = null;
+
+    try {
+      setIdResult = window.djiBridge.platformSetWorkspaceId(workspaceId);
+      Logger.log(`[工作空间] 设置 WorkspaceId: ${workspaceId}`, "info");
+    } catch (err) {
+      Logger.log(`[工作空间] 设置 WorkspaceId 失败: ${err.message}`, "error");
+      return { success: false, message: err.message };
+    }
+
+    try {
+      setInfoResult = window.djiBridge.platformSetInformation(
+        info.platformName,
+        info.workspaceName,
+        info.desc
+      );
+      Logger.log(`[工作空间] 设置平台信息: ${info.platformName}`, "info");
+    } catch (err) {
+      Logger.log(`[工作空间] 设置平台信息失败: ${err.message}`, "error");
+      return { success: false, message: err.message };
+    }
+
+    const parseResult = (result) => {
+      try {
+        return typeof result === "string" ? JSON.parse(result) : result;
+      } catch (e) {
+        return result;
+      }
+    };
+
+    const parsedId = parseResult(setIdResult);
+    const parsedInfo = parseResult(setInfoResult);
+
+    return {
+      success: true,
+      idResult: parsedId,
+      infoResult: parsedInfo
+    };
   },
 
   /**

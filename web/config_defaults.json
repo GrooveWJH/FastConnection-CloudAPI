@@ -1,0 +1,13 @@
+{
+  "MQTT_TCP_URL": "tcp://{lan_ip}:1883",
+  "MQTT_WS_URL": "",
+  "MQTT_USERNAME": "admin",
+  "MQTT_PASSWORD": "public",
+  "MQTT_WS_PORT": "",
+  "MQTT_WS_PATH": "/mqtt",
+  "WEB_BIND_PORT": "3100",
+  "API_TOKEN": "demo-token",
+  "PLATFORM_NAME": "云纵科技-DJI上云平台",
+  "WORKSPACE_NAME": "云纵上云",
+  "WORKSPACE_DESC": "🤖云纵科技"
+}

@@ -10,7 +10,14 @@ export const AppState = {
     host: "",
     authMode: "credential",
     username: "",
-    password: ""
+    password: "",
+    mediaHost: ""
+  },
+  workspace: {
+    id: "",
+    platformName: "",
+    workspaceName: "",
+    desc: ""
   },
 
   /**
@@ -24,6 +31,7 @@ export const AppState = {
         if (stored.host) this.config.host = stored.host;
         if (stored.username) this.config.username = stored.username;
         if (stored.password) this.config.password = stored.password;
+        if (stored.mediaHost) this.config.mediaHost = stored.mediaHost;
       }
     } catch (err) {
       // Ignore storage errors
@@ -42,6 +50,13 @@ export const AppState = {
     } catch (err) {
       // Ignore storage errors
     }
+  },
+
+  /**
+   * Set workspace information for display
+   */
+  setWorkspaceInfo(info) {
+    this.workspace = { ...this.workspace, ...info };
   },
 
   /**
@@ -104,6 +119,12 @@ export const AppState = {
       wsUrl: `${wsScheme}://${hostPart}:${wsPort}${WS_PATH}`,
       secure,
     };
+  },
+
+  computeMediaHostFromMqtt(raw, port = "8090") {
+    const endpoints = this.computeEndpoints(raw);
+    const hostPart = endpoints.hostDisplay.split(":")[0];
+    return `${hostPart}:${port}`;
   },
 
   /**

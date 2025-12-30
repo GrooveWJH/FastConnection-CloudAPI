@@ -22,6 +22,7 @@ async function preloadModules() {
     Logger.log("[预加载] 未检测到 Cloud API 环境", "error");
     UI.updateModuleStatus("thing", false, "环境未就绪");
     UI.updateModuleStatus("liveshare", false, "环境未就绪");
+    UI.updateModuleStatus("media", false, "环境未就绪");
     return;
   }
 
@@ -30,8 +31,11 @@ async function preloadModules() {
     if (!verified) {
       UI.updateModuleStatus("thing", false, "许可证验证失败");
       UI.updateModuleStatus("liveshare", false, "许可证验证失败");
+      UI.updateModuleStatus("media", false, "许可证验证失败");
       return;
     }
+
+    await setupWorkspace();
 
     const creds = AppState.getCredentials(window.APP_CONFIG || {});
 
@@ -60,6 +64,7 @@ async function preloadModules() {
     });
 
     UI.updateModuleStatus("liveshare", liveshareResult.success, liveshareResult.success ? "已加载" : "加载失败");
+    await preloadMediaModule();
 
     setTimeout(() => {
       UI.checkModuleStatus();
@@ -69,7 +74,83 @@ async function preloadModules() {
     Logger.log(`[预加载] 模块预加载出错: ${error.message}`, "error");
     UI.updateModuleStatus("thing", false, "预加载异常");
     UI.updateModuleStatus("liveshare", false, "预加载异常");
+    UI.updateModuleStatus("media", false, "预加载异常");
   }
+}
+
+function getApiConfig() {
+  const appConfig = window.APP_CONFIG || {};
+  let host = AppState.config.mediaHost || "";
+  if (host && !host.includes("://")) {
+    host = `http://${host}`;
+  }
+  return {
+    host: host || appConfig.apiHost || appConfig.apiBase || appConfig.apiEndpoint || "",
+    token: appConfig.apiToken || appConfig.xAuthToken || appConfig.token || ""
+  };
+}
+
+async function preloadMediaModule() {
+  const { host, token } = getApiConfig();
+
+  if (!host || !token) {
+    UI.updateModuleStatus("media", false, "缺少API配置");
+    Logger.log("[Media模块] 缺少 API host/token，跳过加载", "media");
+    return;
+  }
+
+  Logger.log(`[Media模块] 使用 API Host: ${host}`, "media");
+
+  const apiResult = DJIBridge.loadModule("api", { host, token });
+  if (!apiResult.success) {
+    UI.updateModuleStatus("media", false, "API加载失败");
+    Logger.log("[Media模块] API 模块加载失败", "media");
+    return;
+  }
+
+  const appConfig = window.APP_CONFIG || {};
+  const mediaParams = {
+    autoUploadPhoto: true,
+    autoUploadPhotoType: 1,
+    autoUploadVideo: false
+  };
+  if (typeof appConfig.mediaAutoUploadPhoto === "boolean") {
+    mediaParams.autoUploadPhoto = appConfig.mediaAutoUploadPhoto;
+  }
+  if (typeof appConfig.mediaAutoUploadPhotoType === "number") {
+    mediaParams.autoUploadPhotoType = appConfig.mediaAutoUploadPhotoType;
+  }
+  if (typeof appConfig.mediaAutoUploadVideo === "boolean") {
+    mediaParams.autoUploadVideo = appConfig.mediaAutoUploadVideo;
+  }
+
+  const mediaResult = DJIBridge.loadModule("media", mediaParams);
+  UI.updateModuleStatus("media", mediaResult.success, mediaResult.success ? "已加载" : "加载失败");
+  Logger.log(
+    `[Media模块] 自动上传照片=${mediaParams.autoUploadPhoto} 缩略图=${mediaParams.autoUploadPhotoType === 1} 视频自动上传=${mediaParams.autoUploadVideo}`,
+    "media"
+  );
+}
+
+/**
+ * Setup workspace information based on RC serial number
+ */
+async function setupWorkspace() {
+  const platformInfo = DJIBridge.getPlatformInfo();
+  AppState.setWorkspaceInfo(platformInfo);
+  UI.updateConnectionInfo();
+
+  const rcSN = DJIBridge.getRemoteControllerSN();
+  if (!rcSN) {
+    Logger.log("[工作空间] 未获取到遥控器SN，无法生成 WorkspaceId", "warning");
+    return null;
+  }
+
+  const workspaceId = await DJIBridge.generateWorkspaceIdFromSN(rcSN);
+  DJIBridge.setWorkspaceInfo(workspaceId, platformInfo);
+  AppState.setWorkspaceInfo({ id: workspaceId });
+  UI.updateConnectionInfo();
+  return workspaceId;
 }
 
 /**
@@ -102,8 +183,10 @@ function initDefaults() {
   const appConfig = window.APP_CONFIG || {};
 
   AppState.loadFromStorage();
+  AppState.setWorkspaceInfo(DJIBridge.getPlatformInfo());
 
   const hostInput = document.getElementById("mqtt-host");
+  const mediaHostInput = document.getElementById("media-host");
   const usernameInput = document.getElementById("mqtt-username");
   const passwordInput = document.getElementById("mqtt-password");
   const authModeInputs = Array.from(document.querySelectorAll('input[name="auth-mode"]'));
@@ -111,6 +194,17 @@ function initDefaults() {
   hostInput.value = AppState.config.host || defaultHostDisplay();
   usernameInput.value = AppState.config.username || appConfig.mqttUsername || "admin";
   passwordInput.value = AppState.config.password || appConfig.mqttPassword || "public";
+  if (mediaHostInput) {
+    const derivedMediaHost = AppState.computeMediaHostFromMqtt(hostInput.value);
+    if (AppState.config.mediaHost) {
+      mediaHostInput.value = AppState.config.mediaHost;
+      mediaHostInput.dataset.auto = "false";
+    } else {
+      mediaHostInput.value = derivedMediaHost;
+      mediaHostInput.dataset.auto = "true";
+      AppState.config.mediaHost = derivedMediaHost;
+    }
+  }
 
   AppState.config.host = hostInput.value;
   AppState.config.username = usernameInput.value;
@@ -124,6 +218,7 @@ function initDefaults() {
     }
   });
 
+  UI.updateConnectionInfo();
   preloadModules();
 }
 

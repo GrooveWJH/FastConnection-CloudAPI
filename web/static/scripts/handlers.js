@@ -97,6 +97,7 @@ export const Handlers = {
         this.ui.updateConnectionInfo();
         this.ui.checkModuleStatus();
       }
+      this.checkMediaServer();
       return;
     }
 
@@ -109,8 +110,74 @@ export const Handlers = {
         this.ui.updateConnectionInfo();
         this.ui.checkModuleStatus();
       }
+      this.checkMediaServer();
     } catch (error) {
       Logger.log(`[状态] 错误: ${error.message}`, "error");
+    }
+  },
+
+  async checkMediaServer() {
+    const appConfig = window.APP_CONFIG || {};
+    let mediaHost = (AppState.config.mediaHost || "").trim();
+    if (!mediaHost) {
+      mediaHost = AppState.computeMediaHostFromMqtt(AppState.config.host);
+    }
+    if (!mediaHost) {
+      Logger.log("[Media模块] 未配置媒体管理地址", "media");
+      return;
+    }
+    const url = mediaHost.includes("://") ? mediaHost : `http://${mediaHost}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+    try {
+      const response = await fetch(`${url}/health`, {
+        method: "GET",
+        signal: controller.signal
+      });
+      const ok = response.ok;
+      Logger.log(
+        `[Media模块] 服务${ok ? "可达" : "不可达"}: ${url} (${response.status})`,
+        "media"
+      );
+    } catch (error) {
+      Logger.log(`[Media模块] 服务不可达: ${url}`, "media");
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const storageEndpoint = appConfig.storageEndpoint || this.deriveStorageEndpoint(url);
+    if (!storageEndpoint) {
+      Logger.log("[存储] 未配置对象存储地址", "media");
+      return;
+    }
+
+    const storageController = new AbortController();
+    const storageTimeoutId = setTimeout(() => storageController.abort(), 1500);
+    try {
+      const response = await fetch(`${storageEndpoint}/minio/health/ready`, {
+        method: "GET",
+        signal: storageController.signal
+      });
+      const ok = response.ok;
+      Logger.log(
+        `[存储] 服务${ok ? "可达" : "不可达"}: ${storageEndpoint} (${response.status})`,
+        "media"
+      );
+    } catch (error) {
+      Logger.log(`[存储] 服务不可达: ${storageEndpoint}`, "media");
+    } finally {
+      clearTimeout(storageTimeoutId);
+    }
+  },
+
+  deriveStorageEndpoint(baseUrl) {
+    try {
+      const url = new URL(baseUrl);
+      url.port = "9000";
+      return url.origin;
+    } catch (error) {
+      return "";
     }
   },
 
@@ -145,6 +212,54 @@ export const Handlers = {
       }, 500);
     } catch (error) {
       Logger.log(`[缓存] 清除失败: ${error.message}`, 'error');
+    }
+  },
+
+  /**
+   * Copy all logs to clipboard
+   */
+  async onCopyLogs() {
+    const logsContainer = document.getElementById("logs");
+    const copyButton = document.getElementById("copy-logs-button");
+    if (!logsContainer) {
+      Logger.log("[日志] 未找到日志区域", "error");
+      return;
+    }
+    const lines = Array.from(logsContainer.querySelectorAll(".log-item")).map((node) => node.textContent || "");
+    const text = lines.join("\n").trim();
+    if (!text) {
+      Logger.log("[日志] 没有可复制的内容", "info");
+      return;
+    }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!ok) {
+          throw new Error("execCommand failed");
+        }
+      }
+      Logger.log("[日志] 已复制全部日志", "success");
+      if (copyButton) {
+        const originalText = copyButton.textContent || "复制全部";
+        copyButton.textContent = "已复制";
+        copyButton.classList.add("is-copied");
+        setTimeout(() => {
+          copyButton.textContent = originalText;
+          copyButton.classList.remove("is-copied");
+        }, 2000);
+      }
+    } catch (error) {
+      Logger.log("[日志] 复制失败，请检查浏览器权限", "error");
     }
   }
 };

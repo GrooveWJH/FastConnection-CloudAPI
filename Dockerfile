@@ -16,13 +16,13 @@ RUN if command -v apt-get >/dev/null 2>&1; then \
 
 WORKDIR /app
 
-RUN mkdir -p /app/static /app/env
+RUN mkdir -p /app/static
 
 COPY web/static/ /app/static/
 COPY web/entrypoint.py /app/web_entrypoint.py
+COPY web/config_defaults.json /app/web/config_defaults.json
 COPY web/get_local_ip.py /app/get_local_ip.py
 COPY web/diagnose.py /app/diagnose.py
-COPY .env* /app/env/
 COPY scripts/start.sh /app/start.sh
 
 RUN chmod +x /app/start.sh

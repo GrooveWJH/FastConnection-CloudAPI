@@ -1,31 +1,40 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <title>DJI遥控器登录页面</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Material Symbols Icons from Google Fonts CDN -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="/styles/theme.css" />
-    <link rel="stylesheet" href="/styles/layout.css" />
-    <link rel="stylesheet" href="/styles/forms.css" />
-    <link rel="stylesheet" href="/styles/modules.css" />
-    <link rel="stylesheet" href="/styles/terminal.css" />
-    <link rel="stylesheet" href="/styles/animations.css" />
-  </head>
-  <body>
-    <div class="page-wrapper">
-      <section class="panel panel-controls">
-        <h1>DJI RC Cloud API Login</h1>
 
-        <section class="endpoint-settings">
-          <h2>MQTT 服务地址</h2>
+<head>
+  <meta charset="utf-8" />
+  <title>DJI遥控器登录页面</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Material Symbols Icons from Google Fonts CDN -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="/styles/theme.css" />
+  <link rel="stylesheet" href="/styles/layout.css" />
+  <link rel="stylesheet" href="/styles/forms.css" />
+  <link rel="stylesheet" href="/styles/modules.css" />
+  <link rel="stylesheet" href="/styles/terminal.css" />
+  <link rel="stylesheet" href="/styles/animations.css" />
+</head>
+
+<body>
+  <div class="page-wrapper">
+    <section class="panel panel-controls">
+      <h1>DJI RC Cloud API Login</h1>
+
+      <section class="endpoint-settings">
+        <h2>服务地址</h2>
+        <div class="endpoint-grid">
           <label>
-            <span>目标地址</span>
+            <span>MQTT 目标地址</span>
             <input id="mqtt-host" type="text" placeholder="例如 192.168.1.10" />
           </label>
-          <p class="endpoint-note">默认取当前页面主机，可改为 EMQX 实际可达的 IP 或域名。</p>
-        </section>
+          <label>
+            <span>媒体管理地址</span>
+            <input id="media-host" type="text" placeholder="例如 192.168.1.10:8090" />
+          </label>
+        </div>
+        <!-- <p class="endpoint-note">MQTT 默认取当前页面主机；媒体管理默认使用同 IP，端口 8090。</p> -->
+      </section>
 
       <section class="auth-settings">
         <h2>MQTT 连接方式</h2>
@@ -51,69 +60,82 @@
         </div>
       </section>
 
-        <div class="button-row">
-          <button id="login-button"><span class="material-symbols-outlined">login</span>连接</button>
-          <button id="logout-button"><span class="material-symbols-outlined">logout</span>断开</button>
-          <button id="status-button"><span class="material-symbols-outlined">assignment</span>状态检查</button>
-          <button id="test-button"><span class="material-symbols-outlined">bug_report</span>测试 MQTT</button>
-        </div>
-        
-        <div id="connection-info"></div>
-      </section>
+      <div class="button-row">
+        <button id="login-button"><span class="material-symbols-outlined">login</span>连接</button>
+        <button id="logout-button"><span class="material-symbols-outlined">logout</span>断开</button>
+        <button id="status-button"><span class="material-symbols-outlined">assignment</span>状态检查</button>
+        <button id="test-button"><span class="material-symbols-outlined">bug_report</span>测试 MQTT</button>
+      </div>
 
-      <section class="panel panel-logs">
-        <h2>终端日志</h2>
-        <div id="logs"></div>
-      </section>
+      <div id="connection-info"></div>
+    </section>
 
-      <section class="panel panel-modules">
-        <h2>模块控制台</h2>
-        <div class="modules-container">
-          <div class="module-item">
-            <div class="module-header">
-              <span class="module-name">设备上云模块</span>
-              <span class="module-status-indicator" id="thing-status"></span>
-            </div>
-            <div class="module-info" id="thing-info">未加载</div>
+    <section class="panel panel-logs">
+      <div class="panel-header">
+        <h2>日志</h2>
+        <button id="copy-logs-button" class="log-copy-button">复制全部</button>
+      </div>
+      <div id="logs"></div>
+    </section>
+
+    <section class="panel panel-modules">
+      <h2>模块控制台</h2>
+      <div class="modules-container">
+        <div class="module-item">
+          <div class="module-header">
+            <span class="module-name">设备上云模块</span>
+            <span class="module-status-indicator" id="thing-status"></span>
           </div>
-          <div class="module-item">
-            <div class="module-header">
-              <span class="module-name">直播模块</span>
-              <span class="module-status-indicator" id="liveshare-status"></span>
-            </div>
-            <div class="module-info" id="liveshare-info">未加载</div>
+          <div class="module-info" id="thing-info">未加载</div>
+        </div>
+        <div class="module-item">
+          <div class="module-header">
+            <span class="module-name">直播模块</span>
+            <span class="module-status-indicator" id="liveshare-status"></span>
           </div>
+          <div class="module-info" id="liveshare-info">未加载</div>
         </div>
-        <div class="module-actions">
-          <button id="show-livestream-button" class="show-livestream-button">
-            <span class="material-symbols-outlined">play_circle</span>显示直播画面
-          </button>
-          <button id="clear-cache-button" class="clear-cache-button">
-            <span class="material-symbols-outlined">refresh</span>清除页面缓存并刷新
-          </button>
-        </div>
-      </section>
-    </div>
-
-    <!-- 直播播放区域 -->
-    <div class="livestream-container" id="livestream-container" style="display: none;">
-      <div class="livestream-header">
-        <h2>直播画面</h2>
-        <div class="livestream-stats" id="livestream-stats">
-          <span class="stat-item"><span class="material-symbols-outlined">speed</span><span id="fps-display">-- fps</span></span>
-          <span class="stat-item"><span class="material-symbols-outlined">aspect_ratio</span><span id="resolution-display">--</span></span>
+        <div class="module-item">
+          <div class="module-header">
+            <span class="module-name">媒体管理模块</span>
+            <span class="module-status-indicator" id="media-status"></span>
+          </div>
+          <div class="module-info" id="media-info">未加载</div>
         </div>
       </div>
-      <div class="livestream-wrapper">
-        <iframe id="livestream-player" allowfullscreen></iframe>
+      <div class="module-actions">
+        <button id="show-livestream-button" class="show-livestream-button">
+          <span class="material-symbols-outlined">play_circle</span>显示直播画面
+        </button>
+        <button id="clear-cache-button" class="clear-cache-button">
+          <span class="material-symbols-outlined">refresh</span>清除页面缓存并刷新
+        </button>
       </div>
-      <button id="close-livestream-button" class="close-livestream-button">
-        <span class="material-symbols-outlined">close</span>关闭直播窗口
-      </button>
-    </div>
+    </section>
+  </div>
 
-    <script src="/mqtt.min.js"></script>
-    <script src="/config.js"></script>
-    <script type="module" src="/scripts/main.js"></script>
-  </body>
+  <!-- 直播播放区域 -->
+  <div class="livestream-container" id="livestream-container" style="display: none;">
+    <div class="livestream-header">
+      <h2>直播画面</h2>
+      <div class="livestream-stats" id="livestream-stats">
+        <span class="stat-item"><span class="material-symbols-outlined">speed</span><span id="fps-display">--
+            fps</span></span>
+        <span class="stat-item"><span class="material-symbols-outlined">aspect_ratio</span><span
+            id="resolution-display">--</span></span>
+      </div>
+    </div>
+    <div class="livestream-wrapper">
+      <iframe id="livestream-player" allowfullscreen></iframe>
+    </div>
+    <button id="close-livestream-button" class="close-livestream-button">
+      <span class="material-symbols-outlined">close</span>关闭直播窗口
+    </button>
+  </div>
+
+  <script src="/mqtt.min.js"></script>
+  <script src="/config.js"></script>
+  <script type="module" src="/scripts/main.js"></script>
+</body>
+
 </html>

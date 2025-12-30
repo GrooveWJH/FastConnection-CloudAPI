@@ -20,6 +20,7 @@ export const UI = {
     this.bindEvents();
     this.updateModuleStatus("thing", false, "未加载");
     this.updateModuleStatus("liveshare", false, "未加载");
+    this.updateModuleStatus("media", false, "未加载");
     this.showDisconnected();  // Initial state
     Handlers.ui = this;
 
@@ -36,6 +37,7 @@ export const UI = {
     this.elements = {
       connectionInfo: document.getElementById("connection-info"),
       hostInput: document.getElementById("mqtt-host"),
+      mediaHostInput: document.getElementById("media-host"),
       authModeInputs: Array.from(document.querySelectorAll('input[name="auth-mode"]')),
       usernameInput: document.getElementById("mqtt-username"),
       passwordInput: document.getElementById("mqtt-password"),
@@ -44,10 +46,13 @@ export const UI = {
       statusButton: document.getElementById("status-button"),
       testButton: document.getElementById("test-button"),
       clearCacheButton: document.getElementById("clear-cache-button"),
+      copyLogsButton: document.getElementById("copy-logs-button"),
       thingStatusIndicator: document.getElementById("thing-status"),
       thingInfo: document.getElementById("thing-info"),
       liveshareStatusIndicator: document.getElementById("liveshare-status"),
       liveshareInfo: document.getElementById("liveshare-info"),
+      mediaStatusIndicator: document.getElementById("media-status"),
+      mediaInfo: document.getElementById("media-info"),
     };
   },
 
@@ -75,14 +80,43 @@ export const UI = {
     this.elements.hostInput.addEventListener("input", () => {
       AppState.config.host = this.elements.hostInput.value.trim();
       AppState.saveToStorage({ host: AppState.config.host });
+      const nextMediaHost = AppState.computeMediaHostFromMqtt(AppState.config.host);
+      const mediaInput = this.elements.mediaHostInput;
+      if (mediaInput && (mediaInput.dataset.auto === "true" || !mediaInput.value)) {
+        mediaInput.value = nextMediaHost;
+        AppState.config.mediaHost = nextMediaHost;
+        AppState.saveToStorage({ mediaHost: nextMediaHost });
+      }
       this.updateConnectionInfo();
     });
+
+    if (this.elements.mediaHostInput) {
+      this.elements.mediaHostInput.addEventListener("input", () => {
+        AppState.config.mediaHost = this.elements.mediaHostInput.value.trim();
+        AppState.saveToStorage({ mediaHost: AppState.config.mediaHost });
+        this.elements.mediaHostInput.dataset.auto = "false";
+      });
+    }
 
     this.elements.testButton.addEventListener("click", () => Handlers.onTest());
     this.elements.loginButton.addEventListener("click", () => Handlers.onLogin());
     this.elements.logoutButton.addEventListener("click", () => Handlers.onLogout());
     this.elements.statusButton.addEventListener("click", () => Handlers.onStatus());
     this.elements.clearCacheButton.addEventListener("click", () => Handlers.onClearCache());
+    if (this.elements.copyLogsButton) {
+      this.elements.copyLogsButton.addEventListener("click", () => {
+        try {
+          if (typeof Handlers.onCopyLogs === "function") {
+            Handlers.onCopyLogs();
+          } else {
+            Logger.log("[日志] 复制功能未就绪，请刷新页面", "error");
+          }
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          Logger.log(`[日志] 复制功能异常: ${detail}`, "error");
+        }
+      });
+    }
   },
 
   /**
@@ -93,6 +127,7 @@ export const UI = {
     const isConnected = connectionManager ? connectionManager.isConnected() : false;
     const statusClass = isConnected ? "status-connected" : "status-disconnected";
     const statusText = isConnected ? "已连接" : "未连接";
+    const workspace = AppState.workspace || {};
 
     // Get device serial numbers
     const rcSN = DJIBridge.getRemoteControllerSN() || "未获取";
@@ -104,8 +139,7 @@ export const UI = {
         <span class="status-indicator ${statusClass}"></span>
         <span>${statusText}</span>
       </div>
-      <div><strong>TCP 地址:</strong> ${creds.tcpUrl}</div>
-      <div><strong>WebSocket 地址:</strong> ${creds.wsUrl}</div>
+      <div><strong>WorkspaceId:</strong> <span style="font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;">${workspace.id || "待生成"}</span></div>
       <div style="margin-top: calc(var(--space) * 0.5); padding-top: calc(var(--space) * 0.5); border-top: 1px solid rgba(148, 163, 184, 0.2);">
         <strong>遥控器SN:</strong> <span style="font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;">${rcSN}</span>
       </div>
@@ -155,6 +189,9 @@ export const UI = {
     } else if (moduleName === "liveshare") {
       statusIndicator = this.elements.liveshareStatusIndicator;
       infoElement = this.elements.liveshareInfo;
+    } else if (moduleName === "media") {
+      statusIndicator = this.elements.mediaStatusIndicator;
+      infoElement = this.elements.mediaInfo;
     } else {
       return;
     }
@@ -179,6 +216,7 @@ export const UI = {
     if (!DJIBridge.isAvailable()) {
       this.updateModuleStatus("thing", false, "环境未就绪");
       this.updateModuleStatus("liveshare", false, "环境未就绪");
+      this.updateModuleStatus("media", false, "环境未就绪");
       return;
     }
 
@@ -188,6 +226,9 @@ export const UI = {
 
       const liveshareLoaded = DJIBridge.isModuleLoaded("liveshare");
       this.updateModuleStatus("liveshare", liveshareLoaded, liveshareLoaded ? "已加载" : "未加载");
+
+      const mediaLoaded = DJIBridge.isModuleLoaded("media");
+      this.updateModuleStatus("media", mediaLoaded, mediaLoaded ? "已加载" : "未加载");
     } catch (error) {
       Logger.log(`[模块检查] 出错: ${error.message}`, "error");
     }
