@@ -184,7 +184,7 @@ export const Handlers = {
   /**
    * Clear cache and reload
    */
-  onClearCache() {
+  async onClearCache() {
     // Show confirmation dialog
     const confirmed = confirm('确定要清除页面缓存并刷新吗？\n\n这将清除所有本地存储数据并重新加载页面。');
 
@@ -193,23 +193,56 @@ export const Handlers = {
       return;
     }
 
-    Logger.log('[缓存] 正在清除浏览器缓存...', 'info');
+    Logger.log('[缓存] 正在清除浏览器数据...', 'info');
 
     try {
+      const tasks = [];
+
       if ('caches' in window) {
-        caches.keys().then(names => {
-          names.forEach(name => caches.delete(name));
-        });
+        tasks.push(
+          caches.keys().then(names => Promise.all(names.map(name => caches.delete(name))))
+        );
       }
 
       localStorage.clear();
       sessionStorage.clear();
 
-      Logger.log('[缓存] 缓存已清除，即将刷新页面', 'success');
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        tasks.push(
+          navigator.serviceWorker.getRegistrations().then(regs =>
+            Promise.all(regs.map(reg => reg.unregister()))
+          )
+        );
+      }
 
+      if (indexedDB && indexedDB.databases) {
+        tasks.push(
+          indexedDB.databases().then(dbs =>
+            Promise.all(dbs.map(db => db.name ? new Promise(resolve => {
+              const req = indexedDB.deleteDatabase(db.name);
+              req.onsuccess = resolve;
+              req.onerror = resolve;
+              req.onblocked = resolve;
+            }) : Promise.resolve()))
+          )
+        );
+      }
+
+      if (typeof document !== 'undefined') {
+        document.cookie.split(';').forEach(cookie => {
+          const name = cookie.split('=')[0].trim();
+          if (!name) return;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+        });
+      }
+
+      await Promise.all(tasks);
+
+      Logger.log('[缓存] 已清除缓存与存储，正在刷新页面', 'success');
       setTimeout(() => {
-        window.location.reload(true);
-      }, 500);
+        window.location.reload();
+      }, 300);
     } catch (error) {
       Logger.log(`[缓存] 清除失败: ${error.message}`, 'error');
     }
