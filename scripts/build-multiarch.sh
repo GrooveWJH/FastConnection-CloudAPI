@@ -10,8 +10,9 @@ IMAGE_NAME="groovewjh/fc-cloudapi"
 AUTO_PUSH=false
 
 # 解析参数
+POSITIONAL_ARGS=()
 for arg in "$@"; do
-    case $arg in
+    case "$arg" in
         --push)
             AUTO_PUSH=true
             ;;
@@ -45,14 +46,17 @@ EOF
             show_help
             ;;
         *)
-            if [ "$VERSION" = "latest" ]; then
-                VERSION="$arg"
-            elif [ "$IMAGE_NAME" = "groovewjh/fc-cloudapi" ]; then
-                IMAGE_NAME="$arg"
-            fi
+            POSITIONAL_ARGS+=("$arg")
             ;;
     esac
 done
+
+if [ ${#POSITIONAL_ARGS[@]} -ge 1 ]; then
+    VERSION="${POSITIONAL_ARGS[0]}"
+fi
+if [ ${#POSITIONAL_ARGS[@]} -ge 2 ]; then
+    IMAGE_NAME="${POSITIONAL_ARGS[1]}"
+fi
 
 echo "==========================================="
 echo "  FastConnection CloudAPI"
@@ -177,6 +181,5 @@ echo "3️⃣  本地测试 (仅构建当前架构 $(uname -m)):"
 echo "   docker-compose up -d --build"
 echo ""
 echo "==========================================="
-
 
 
