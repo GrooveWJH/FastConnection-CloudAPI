@@ -11,11 +11,7 @@
 ## 配置解析顺序
 
 1. 运行时环境变量（`docker compose.yml` 或 `docker run -e ...`）。
-2. 镜像内 `/app/env/.env`（仓库根目录 `.env` 拷贝）。
-3. 镜像内 `/app/env/.env.example`。
-4. 代码默认值（`web/entrypoint.py` 中）。
-
-> 建议在仓库根目录维护 `.env`，修改后执行 `docker compose up -d --build` 以重建镜像。
+2. 代码默认值（`web/entrypoint.py` 中）。
 
 ## 环境变量说明
 
@@ -35,8 +31,7 @@
 
 ## 构建与部署
 
-- 任意修改（前端、Python、配置）后执行 `docker compose up -d --build` 以重建镜像。
-- `.env` 建议仅保存在本机，生产环境可通过 CI/CD 注入，镜像内 `.env.example` 仅作为模板。
+- 任意修改（前端、Python）后执行 `docker compose up -d --build` 以重建镜像。
 - 若需 TLS (`mqtts`/`wss`)，先在 EMQX 配置证书，再将 `MQTT_TCP_URL` 改为 `ssl://...` 或 `mqtts://...`，`MQTT_WS_PORT` 指向 TLS WebSocket 端口（默认 8084）。
 
 ## 数据与日志
@@ -55,7 +50,7 @@
 3. 浏览器访问 `http://<host>:<port>`，使用“测试 MQTT”按钮或“连接”按钮观察日志是否成功。
 4. 使用 MQTTX / MQTT Explorer / `mosquitto_pub/sub` 测试 EMQX 1883/8083/8084 端口连通情况。
 5. 如连接失败，排查：
-   - `.env` 或环境变量的 IP/端口是否正确且可达。
+   - 环境变量的 IP/端口是否正确且可达。
    - 防火墙/安全组是否放行。
    - 查看 `docker compose logs app` 与 `docker compose logs emqx`，关注认证失败或连接被拒绝的提示。
 

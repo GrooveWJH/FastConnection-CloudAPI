@@ -16,24 +16,44 @@
 
 **Linux：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped --network host groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped --network host -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**macOS/Windows：**
+**macOS：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (PowerShell)：**
+```powershell
+docker rm -f fc-cloudapi 2>$null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (CMD)：**
+```cmd
+docker rm -f fc-cloudapi 2>nul & docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
 **强制更新（当有新版本时）：**
 
 **Linux：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi --network host -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**macOS/Windows：**
+**macOS：**
 ```bash
-docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
+docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (PowerShell)：**
+```powershell
+docker rm -f fc-cloudapi 2>$null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
+```
+
+**Windows (CMD)：**
+```cmd
+docker rm -f fc-cloudapi 2>nul & docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
 > **提示**：日常使用快速启动命令即可。只有在需要强制更新到最新版本时才添加 `--pull always` 参数。
@@ -41,8 +61,9 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-clou
 **平台说明：**
 
 - **Linux**：支持 `--network host`，登录页会自动检测并预填充局域网 IP 地址。
-- **macOS/Windows**：不支持 `--network host`，需使用端口映射 (`-p`)，并在网页界面手动输入 IP 地址。
-- **Windows**：Docker Desktop 会自动转发端口到 Windows 主机，可在 Windows 浏览器中访问 `http://localhost:3100`。
+- **macOS**：不支持 `--network host`，需使用端口映射 (`-p`)，并在网页界面手动输入 IP 地址。
+- **Windows**：不支持 `--network host`，需使用端口映射 (`-p`)。Docker Desktop 会自动转发端口到 Windows 主机，可在 Windows 浏览器中访问 `http://localhost:3100`。
+- **数据持久化**：以上命令使用 Docker 命名卷（`fc-emqx-data`、`fc-emqx-log`、`fc-emqx-etc`）持久化 EMQX 数据，删除/重建容器不会丢失配置。
 
 **端口说明：**
 
@@ -66,7 +87,7 @@ docker logs fc-cloudapi
 docker rm fc-cloudapi
 ```
 
-**提示**：在 macOS/Windows 上，请确保 Docker Desktop 设置为开机自启动，这样系统登录后容器才能自动恢复。
+**macOS/Windows 提醒**：请确保 Docker Desktop 设置为开机自启动，这样系统登录后容器才能自动恢复。
 
 **更新到最新版本：**
 
@@ -93,8 +114,10 @@ docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:
 快速开始：
 
 1. 克隆该仓库。
-2. `cp .env.example .env`（可选）用于调整 MQTT 参数或端口。
-3. `docker compose up -d --build`
+2. Linux：
+   `docker compose up -d --build`
+3. macOS：
+   `docker compose -f docker-compose.yml -f docker-compose.macos.yml up -d --build`
 4. 在浏览器访问 `http://<宿主机IP>:3100`。
 
 **自动 IP 检测（仅 Linux）**：在 Linux 系统上，登录页会自动探测容器的局域网地址。在 macOS/Windows 上，需要在网页界面手动配置 MQTT 服务器 IP。

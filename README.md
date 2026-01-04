@@ -121,8 +121,10 @@ docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:
 Quick start:
 
 1. clone this repo.
-2. `cp .env.example .env` (optional) to tweak MQTT settings or ports.
-3. `docker compose up -d --build`
+2. Linux:
+   `docker compose up -d --build`
+3. macOS:
+   `docker compose -f docker-compose.yml -f docker-compose.macos.yml up -d --build`
 4. Visit `http://<host-ip>:3100` in your browser.
 
 **Auto IP Detection (Linux only)**: On Linux systems, the login page will automatically detect the container's LAN address. On macOS/Windows, you need to manually configure the MQTT server IP in the web interface.

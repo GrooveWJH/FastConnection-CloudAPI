@@ -1,0 +1,12 @@
+services:
+  fc-cloudapi:
+    network_mode: "bridge"
+    ports:
+      - "3100:3100"
+      - "18083:18083"
+      - "1883:1883"
+      - "8083:8083"
+      - "8084:8084"
+      - "8883:8883"
+    environment:
+      WEB_BIND_HOST: 0.0.0.0

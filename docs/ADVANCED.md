@@ -11,11 +11,7 @@
 ## Configuration Resolution Order
 
 1. Runtime environment variables (`docker compose.yml` or `docker run -e ...`).
-2. `/app/env/.env` baked into the image (copied from repository root).
-3. `/app/env/.env.example` packaged with the image.
-4. Hard-coded defaults in `web/entrypoint.py`.
-
-> Keep a `.env` at the project root and run `docker compose up -d --build` after edits so the rebuilt image picks up your latest defaults.
+2. Hard-coded defaults in `web/entrypoint.py`.
 
 ## Environment Variables
 
@@ -35,8 +31,7 @@
 
 ## Build & Deployment
 
-- After any change (front end, Python, env files) run `docker compose up -d --build` to rebuild the image.
-- Keep `.env` out of version control in production; inject it via CI/CD and treat the baked `.env.example` as a template only.
+- After any change (front end, Python) run `docker compose up -d --build` to rebuild the image.
 - For TLS (`mqtts`/`wss`), configure certificates in EMQX, set `MQTT_TCP_URL` to `ssl://...` or `mqtts://...`, and point `MQTT_WS_PORT` to the TLS WebSocket port (8084 by default).
 
 ## Data & Logs
@@ -55,7 +50,7 @@
 3. Visit `http://<host>:<port>` and use the “Connect”/“Test MQTT” actions to confirm the UI reports a successful connection.
 4. Test EMQX ports (1883/8083/8084) with MQTTX, MQTT Explorer, or `mosquitto_pub/sub`.
 5. If the browser fails to connect, verify:
-   - The `.env` or runtime variables point to an IP/domain reachable from your network.
+   - The runtime variables point to an IP/domain reachable from your network.
    - Firewalls, NAT rules, or security groups allow the required ports.
    - EMQX logs are free of authentication or connection errors.
 
