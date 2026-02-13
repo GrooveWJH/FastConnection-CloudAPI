@@ -2,12 +2,14 @@
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/groovewjh/fc-cloudapi?style=flat-square)](https://hub.docker.com/r/groovewjh/fc-cloudapi)
 [![License](https://img.shields.io/github/license/groovewjh/FastConnection-CloudAPI?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-blue?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-blue?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
 [![Architecture](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-green?style=flat-square)](https://github.com/groovewjh/FastConnection-CloudAPI)
 
 [![中文文档](https://img.shields.io/badge/文档-中文-blue?style=flat-square)](docs/README-CN.md)
 
 ---
+
+![](imgs/cover.png)
 
 ## Use Docker run
 
@@ -25,18 +27,6 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart
 docker rm -f fc-cloudapi 2>/dev/null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-docker rm -f fc-cloudapi 2>$null; docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
-```
-
-**Windows (CMD):**
-
-```cmd
-docker rm -f fc-cloudapi 2>nul & docker run -d --name fc-cloudapi --restart unless-stopped -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
-```
-
 **Force Update (when new version available):**
 
 **Linux:**
@@ -51,25 +41,12 @@ docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-clou
 docker rm -f fc-cloudapi 2>/dev/null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-docker rm -f fc-cloudapi 2>$null; docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
-```
-
-**Windows (CMD):**
-
-```cmd
-docker rm -f fc-cloudapi 2>nul & docker run -d --pull always --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 -v fc-emqx-data:/opt/emqx/data -v fc-emqx-log:/opt/emqx/log -v fc-emqx-etc:/opt/emqx/etc groovewjh/fc-cloudapi:latest
-```
-
 > **Tip**: Use the quick start command for normal use. Add `--pull always` only when you want to force update to the latest version.
 
 **Platform Notes:**
 
 - **Linux**: `--network host` works. The login page will auto-detect and pre-fill the LAN IP address.
 - **macOS**: `--network host` is not supported. Use port mappings (`-p`) instead. You need to manually enter the IP address in the web interface.
-- **Windows**: `--network host` is not supported. Use port mappings (`-p`) instead. Docker Desktop automatically forwards ports to Windows host, so you can access `http://localhost:3100` from Windows browsers.
 - **Data Persistence**: All commands use Docker named volumes (`fc-emqx-data`, `fc-emqx-log`, `fc-emqx-etc`) to persist EMQX data. Your MQTT configuration and data will be preserved even if you remove and recreate the container.
 
 **Port Information:**
@@ -94,7 +71,7 @@ docker logs fc-cloudapi
 docker rm fc-cloudapi
 ```
 
-**macOS/Windows reminder**: Configure Docker Desktop to start when you log in so that the container can restart automatically.
+**macOS reminder**: Configure Docker Desktop to start when you log in so that the container can restart automatically.
 
 **Update to the latest version:**
 
@@ -110,7 +87,7 @@ docker pull groovewjh/fc-cloudapi:latest
 # Linux:
 docker run -d --name fc-cloudapi --network host groovewjh/fc-cloudapi:latest
 
-# macOS/Windows:
+# macOS:
 docker run -d --name fc-cloudapi -p 3100:3100 -p 1883:1883 -p 8083:8083 -p 8084:8084 -p 8883:8883 -p 18083:18083 groovewjh/fc-cloudapi:latest
 ```
 
@@ -127,7 +104,7 @@ Quick start:
    `docker compose -f docker-compose.yml -f docker-compose.macos.yml up -d --build`
 4. Visit `http://<host-ip>:3100` in your browser.
 
-**Auto IP Detection (Linux only)**: On Linux systems, the login page will automatically detect the container's LAN address. On macOS/Windows, you need to manually configure the MQTT server IP in the web interface.
+**Auto IP Detection (Linux only)**: On Linux systems, the login page will automatically detect the container's LAN address. On macOS, you need to manually configure the MQTT server IP in the web interface.
 
 The login page remembers your last configuration.
 
